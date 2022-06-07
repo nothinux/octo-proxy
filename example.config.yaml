@@ -1,0 +1,28 @@
+servers:
+- name: nn
+  listener:
+    host: 127.0.0.1
+    port: 8080
+    tlsConfig:
+      mode: mutual
+      cert: /home/nothinux/Development/guardian/certs/localhost.pem
+      key: /home/nothinux/Development/guardian/certs/localhost-key.pem
+      caCert: /home/nothinux/Development/guardian/certs/ca-cert.pem
+    timeout: 60
+  target:
+    host: 172.17.0.2
+    port: 80
+    timeout: 60
+    tlsConfig:
+      mode: simple
+      caCert: /home/nothinux/Development/guardian/certs/ca-cert.pem
+  mirror:
+    host: 172.17.0.3
+    port: 80
+- name: webserver
+  listener:
+    host: 127.0.0.1
+    port: 8081
+  target:
+    host: 127.0.0.1
+    port: 80
