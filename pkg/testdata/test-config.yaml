@@ -1,0 +1,21 @@
+servers:
+- name: test-server
+  listener:
+    host: 127.0.0.1
+    port: 8080
+    tlsConfig:
+      mode: mutual
+      cert: localhost.pem
+      key: localhost-key.pem
+      caCert: ca-cert.pem
+    timeout: 60
+  target:
+    host: 172.17.0.2
+    port: 80
+    timeout: 60
+    tlsConfig:
+      mode: simple
+      caCert: ca-cert.pem
+  mirror:
+    host: 172.17.0.3
+    port: 80

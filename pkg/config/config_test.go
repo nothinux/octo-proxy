@@ -19,6 +19,184 @@ var (
 	invalidConfig = `server{}`
 )
 
+func TestNewConfig(t *testing.T) {
+	t.Run("Test when configuration file is not exists", func(t *testing.T) {
+		_, err := New("/tmp/conf.yaml")
+		if err != nil {
+			if !strings.Contains(err.Error(), "open /tmp/conf.yaml: no such file or directory") {
+				t.Fatal(err)
+			}
+		}
+	})
+
+	t.Run("Test valid configuration file", func(t *testing.T) {
+		_, err := New("../testdata/test-config.yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func TestTlsConfigMode(t *testing.T) {
+	tests := []struct {
+		Name               string
+		Config             TLSConfig
+		expectedMutualMode bool
+		expectedSimpleMode bool
+	}{
+		{
+			Name: "Test if mode is mutual",
+			Config: TLSConfig{
+				Mode: "mutual",
+			},
+			expectedMutualMode: true,
+			expectedSimpleMode: false,
+		},
+		{
+			Name: "Test if mode is simple",
+			Config: TLSConfig{
+				Mode: "simple",
+			},
+			expectedMutualMode: false,
+			expectedSimpleMode: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			if tt.Config.IsMutual() != tt.expectedMutualMode {
+				t.Fatalf("got %v, want %v", tt.expectedMutualMode, tt.Config.IsMutual())
+			}
+
+			if tt.Config.IsSimple() != tt.expectedSimpleMode {
+				t.Fatalf("got %v, want %v", tt.expectedSimpleMode, tt.Config.IsMutual())
+			}
+		})
+	}
+}
+
+func TestHostConfigType(t *testing.T) {
+	tests := []struct {
+		Name           string
+		Hct            hostConfigType
+		expectedString string
+	}{
+		{
+			Name:           "Test if hostconfigtype is listener",
+			Hct:            slistener,
+			expectedString: "listener",
+		},
+		{
+			Name:           "Test if hostconfigtype is target",
+			Hct:            starget,
+			expectedString: "target",
+		},
+		{
+			Name:           "Test if hostconfigtype is mirror",
+			Hct:            smirror,
+			expectedString: "mirror",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			if tt.Hct.String() != tt.expectedString {
+				t.Fatalf("got %s, want %s", tt.Hct.String(), tt.expectedString)
+			}
+		})
+	}
+}
+
+func TestGenerateConfig(t *testing.T) {
+	tests := []struct {
+		Name           string
+		Listener       string
+		Target         string
+		expectedConfig *Config
+		expectedError  string
+	}{
+		{
+			Name:     "Test valid listener and target",
+			Listener: "127.0.0.1:8080",
+			Target:   "127.0.0.1:80",
+			expectedConfig: &Config{
+				[]ServerConfig{
+					{
+						Name: "default",
+						Listener: HostConfig{
+							Host:    "127.0.0.1",
+							Port:    "8080",
+							Timeout: 300,
+						},
+						Target: HostConfig{
+							Host:    "127.0.0.1",
+							Port:    "80",
+							Timeout: 300,
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:           "Test invalid listener",
+			Listener:       ":8080",
+			Target:         "127.0.0.1:80",
+			expectedConfig: nil,
+			expectedError:  "host in servers.[0].listener.host not specified",
+		},
+		{
+			Name:           "Test invalid target",
+			Listener:       "127.0.0.1:8080",
+			Target:         ":80",
+			expectedConfig: nil,
+			expectedError:  "host in servers.[0].target.host not specified",
+		},
+		{
+			Name:           "Test invalid port in listener",
+			Listener:       "127.0.0.1:m",
+			Target:         "127.0.0.1:80",
+			expectedConfig: nil,
+			expectedError:  "port in servers.[0].listener.port is not valid",
+		},
+		{
+			Name:           "Test no port in listener",
+			Listener:       "127.0.0.1:",
+			Target:         "127.0.0.1:80",
+			expectedConfig: nil,
+			expectedError:  "port in servers.[0].listener.port not specified",
+		},
+		{
+			Name:           "Test no port in target",
+			Listener:       "127.0.0.1:8080",
+			Target:         "127.0.0.1",
+			expectedConfig: nil,
+			expectedError:  "listener or target must be specified in format host:port",
+		},
+		{
+			Name:           "Test multiple",
+			Listener:       "127.0.0.1:8080",
+			Target:         "127.0.0.1:80:8080",
+			expectedConfig: nil,
+			expectedError:  "listener or target must be specified in format host:port",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			c, err := GenerateConfig(tt.Listener, tt.Target)
+			if err != nil {
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Fatalf("got %v, want %s", err, tt.expectedError)
+				}
+			}
+
+			if !reflect.DeepEqual(c, tt.expectedConfig) {
+				t.Fatalf("got %v, want %v", c, tt.expectedConfig)
+			}
+		})
+	}
+}
+
 func TestReadConfig(t *testing.T) {
 	tests := []struct {
 		Name           string
@@ -101,11 +279,6 @@ func TestValidateConfig(t *testing.T) {
 							Host:    "127.0.0.1",
 							Port:    "8080",
 							Timeout: 300,
-							TLSConfig: TLSConfig{
-								Role: Role{
-									Server: true,
-								},
-							},
 						},
 						Target: HostConfig{
 							Host:    "127.0.0.1",
@@ -115,6 +288,14 @@ func TestValidateConfig(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			Name: "no server config",
+			Config: &Config{
+				[]ServerConfig{},
+			},
+			expectedConfig: nil,
+			expectedError:  "error no server configuration found",
 		},
 		{
 			Name:           "no config",
@@ -292,6 +473,76 @@ func TestValidateConfig(t *testing.T) {
 			expectedError:  "port in servers.[0].target.port is not valid port number",
 		},
 		{
+			Name: "no host in mirror",
+			Config: &Config{
+				[]ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Target: HostConfig{
+							Host: "127.0.0.1",
+							Port: "80",
+						},
+						Mirror: HostConfig{
+							Port: "2210",
+						},
+					},
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "host in servers.[0].mirror.host not specified",
+		},
+		{
+			Name: "no port in mirror",
+			Config: &Config{
+				[]ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Target: HostConfig{
+							Host: "127.0.0.1",
+							Port: "80",
+						},
+						Mirror: HostConfig{
+							Host: "192.168.1.1",
+						},
+					},
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "port in servers.[0].mirror.port not specified",
+		},
+		{
+			Name: "port in mirror is invalid",
+			Config: &Config{
+				[]ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Target: HostConfig{
+							Host: "127.0.0.1",
+							Port: "80",
+						},
+						Mirror: HostConfig{
+							Host: "192.168.1.1",
+							Port: "2cc",
+						},
+					},
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "port in servers.[0].mirror.port is not valid",
+		},
+		{
 			Name: "set timeout on listener",
 			Config: &Config{
 				[]ServerConfig{
@@ -317,11 +568,6 @@ func TestValidateConfig(t *testing.T) {
 							Host:    "127.0.0.1",
 							Port:    "8080",
 							Timeout: 10,
-							TLSConfig: TLSConfig{
-								Role: Role{
-									Server: true,
-								},
-							},
 						},
 						Target: HostConfig{
 							Host:    "127.0.0.1",
@@ -359,16 +605,61 @@ func TestValidateConfig(t *testing.T) {
 							Host:    "127.0.0.1",
 							Port:    "8080",
 							Timeout: 10,
-							TLSConfig: TLSConfig{
-								Role: Role{
-									Server: true,
-								},
-							},
 						},
 						Target: HostConfig{
 							Host:    "127.0.0.1",
 							Port:    "80",
 							Timeout: 200,
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "valid tlsConfig on listener",
+			Config: &Config{
+				[]ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+							TLSConfig: TLSConfig{
+								Mode:   "mutual",
+								Key:    "/tmp/key.pem",
+								CaCert: "/tmp/ca-cert.pem",
+								Cert:   "/tmp/cert.pem",
+							},
+						},
+						Target: HostConfig{
+							Host: "127.0.0.1",
+							Port: "80",
+						},
+					},
+				},
+			},
+			expectedConfig: &Config{
+				[]ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host:    "127.0.0.1",
+							Port:    "8080",
+							Timeout: 300,
+							TLSConfig: TLSConfig{
+								Role: Role{
+									Server: true,
+								},
+								Mode:   "mutual",
+								Key:    "/tmp/key.pem",
+								CaCert: "/tmp/ca-cert.pem",
+								Cert:   "/tmp/cert.pem",
+							},
+						},
+						Target: HostConfig{
+							Host:    "127.0.0.1",
+							Port:    "80",
+							Timeout: 300,
 						},
 					},
 				},

@@ -11,6 +11,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type hostConfigType int
+
+const (
+	slistener hostConfigType = iota
+	starget
+	smirror
+)
+
 type Config struct {
 	ServerConfigs []ServerConfig `yaml:"servers"`
 }
@@ -49,6 +57,10 @@ func (t TLSConfig) IsSimple() bool {
 	return t.Mode == "simple"
 }
 
+func (h hostConfigType) String() string {
+	return [...]string{"listener", "target", "mirror"}[h]
+}
+
 func New(configPath string) (*Config, error) {
 	c, err := openConfig(configPath)
 	if err != nil {
@@ -83,6 +95,10 @@ func GenerateConfig(listener, target string) (*Config, error) {
 	l := strings.Split(listener, ":")
 	t := strings.Split(target, ":")
 
+	if len(l) != 2 || len(t) != 2 {
+		return nil, errors.New("error", "listener or target must be specified in format host:port")
+	}
+
 	c := &Config{
 		ServerConfigs: []ServerConfig{
 			{
@@ -114,17 +130,28 @@ func validateConfig(c *Config) (*Config, error) {
 	for i := 0; i < len(c.ServerConfigs); i++ {
 		listener := &c.ServerConfigs[i].Listener
 		target := &c.ServerConfigs[i].Target
+		mirror := &c.ServerConfigs[i].Mirror
 
-		if err := errorCheck(i, true, listener); err != nil {
+		if err := errorCheck(i, slistener, listener); err != nil {
 			return nil, err
 		}
 
-		if err := errorCheck(i, false, target); err != nil {
+		if err := errorCheck(i, starget, target); err != nil {
 			return nil, err
 		}
 
+		// check config for error only when configuration is not nil
+		if (HostConfig{}) != *mirror {
+			if err := errorCheck(i, smirror, mirror); err != nil {
+				return nil, err
+			}
+
+			setTimeout(mirror)
+		}
 		// set all listener role to server
-		listener.TLSConfig.Role.Server = true
+		if (TLSConfig{}) != c.ServerConfigs[i].Listener.TLSConfig {
+			listener.TLSConfig.Role.Server = true
+		}
 
 		setTimeout(listener)
 		setTimeout(target)
@@ -139,50 +166,42 @@ func setTimeout(c *HostConfig) {
 	}
 }
 
-func errorCheck(i int, isListener bool, c *HostConfig) error {
-	var hostType string
-
-	if isListener {
-		hostType = "listener"
-	} else {
-		hostType = "target"
-	}
-
+func errorCheck(i int, hct hostConfigType, c *HostConfig) error {
 	if (HostConfig{}) == *c {
-		return errors.New("server", fmt.Sprintf("no %s configuration in servers.[%d]", hostType, i))
+		return errors.New("server", fmt.Sprintf("no %s configuration in servers.[%d]", hct.String(), i))
 	}
 
 	if c.Host == "" {
-		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host not specified", i, hostType))
+		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host not specified", i, hct.String()))
 	}
 
 	if !hostIPIsValid(c.Host) {
-		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host is not valid ip address", i, hostType))
+		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host is not valid ip address", i, hct.String()))
 	}
 
 	if c.Port == "" {
-		return errors.New("server", fmt.Sprintf("port in servers.[%d].%s.port not specified", i, hostType))
+		return errors.New("server", fmt.Sprintf("port in servers.[%d].%s.port not specified", i, hct.String()))
 	}
 
 	if !portIsValid(c.Port) {
-		return errors.New("server", fmt.Sprintf("port in servers.[%d].%s.port is not valid port number", i, hostType))
+		return errors.New("server", fmt.Sprintf("port in servers.[%d].%s.port is not valid port number", i, hct.String()))
 	}
 
 	// inform user when cacert, cert and key provided but
 	if c.TLSConfig.CaCert != "" || c.TLSConfig.Cert != "" || c.TLSConfig.Key != "" {
 		if c.TLSConfig.Mode == "" {
-			return errors.New("server.tlsConfig", fmt.Sprintf("ignore cacert, cert or key in servers.[%d].%s because tlsConfig.mode is not set", i, hostType))
+			return errors.New("server.tlsConfig", fmt.Sprintf("ignore cacert, cert or key in servers.[%d].%s because tlsConfig.mode is not set", i, hct.String()))
 		}
 
 		if !c.TLSConfig.IsMutual() && !c.TLSConfig.IsSimple() {
-			return errors.New("server.tlsConfig", fmt.Sprintf("not supported mode in servers.[%d].%s", i, hostType))
+			return errors.New("server.tlsConfig", fmt.Sprintf("not supported mode in servers.[%d].%s", i, hct.String()))
 		}
 	}
 
 	if c.TLSConfig.IsMutual() {
 		// if mode is mutual cert, key and ca cert must be set
 		if c.TLSConfig.CaCert == "" || c.TLSConfig.Cert == "" || c.TLSConfig.Key == "" {
-			return errors.New("server.tlsConfig", fmt.Sprintf("cacert, cert and key in servers.[%d].%s must be set if mode is mutual", i, hostType))
+			return errors.New("server.tlsConfig", fmt.Sprintf("cacert, cert and key in servers.[%d].%s must be set if mode is mutual", i, hct.String()))
 		}
 	}
 

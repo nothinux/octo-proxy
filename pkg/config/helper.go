@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"io"
 	"net"
 	"os"
@@ -28,19 +27,19 @@ func portIsValid(p string) bool {
 	return valid
 }
 
-func isExist(path string) bool {
-	_, err := os.Stat(path)
-
-	return !errors.Is(err, os.ErrNotExist)
-}
-
 func readContent(path string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := io.ReadAll(f)
+	defer f.Close()
+
+	return readContentFile(f)
+}
+
+func readContentFile(r io.Reader) ([]byte, error) {
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
