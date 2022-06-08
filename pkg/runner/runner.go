@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,11 +19,11 @@ type Octo struct {
 
 type Server config.Config
 
-func Run(c *config.Config) error {
+func Run(c *config.Config, cPath string) error {
 	ss := &Server{c.ServerConfigs}
 	proxies := ss.runProxy()
 
-	guardian := &Octo{
+	octo := &Octo{
 		Proxies: proxies,
 	}
 
@@ -36,13 +37,48 @@ alive:
 	for {
 		select {
 		case <-sigTerm:
-			guardian.Lock()
-			shutdown(guardian.Proxies)
-			guardian.Unlock()
+			log.Println("octo-proxy interrupted")
+
+			octo.Lock()
+			shutdown(octo.Proxies)
+			octo.Unlock()
+
 			break alive
 		case <-sigReload:
+			log.Println("octo-proxy reload trigerred")
+
+			if err := reloadProxy(cPath, octo); err != nil {
+				log.Println(err)
+				log.Println("octo-proxy reload failed")
+				continue
+			}
+
+			log.Println("octo-proxy reloaded")
 		}
 	}
+
+	return nil
+}
+
+func reloadProxy(cPath string, octo *Octo) error {
+	c, err := config.New(cPath)
+	if err != nil {
+		return err
+	}
+
+	ss := &Server{c.ServerConfigs}
+	proxies := ss.runProxy()
+
+	octo.Lock()
+	// shutdown old listener in
+	oldOcto := octo.Proxies
+	shutdown(oldOcto)
+
+	// set new listener
+	octo.Proxies = proxies
+
+	// done
+	octo.Unlock()
 
 	return nil
 }
@@ -70,11 +106,11 @@ func (s *Server) runProxy() map[string]*proxy.Proxy {
 }
 
 func shutdown(proxies map[string]*proxy.Proxy) {
+	log.Println("shutdown octo-proxy")
+
 	for _, p := range proxies {
 		if p.Listener != nil {
-			close(p.Quit)
-			p.Listener.Close()
-			p.Wg.Wait()
+			p.Shutdown()
 		}
 	}
 }
