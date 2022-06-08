@@ -53,5 +53,9 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 		}
 	}
 
+	if m == nil {
+		return []net.Conn{t}, io.MultiWriter(t), nil
+	}
+
 	return []net.Conn{t, m}, io.MultiWriter(t, m), nil
 }
