@@ -65,7 +65,7 @@ func runMain() error {
 			return err
 		}
 
-		if err := runner.Run(c); err != nil {
+		if err := runner.Run(c, ""); err != nil {
 			return err
 		}
 
@@ -84,7 +84,7 @@ func runMain() error {
 		return err
 	}
 
-	if err := runner.Run(c); err != nil {
+	if err := runner.Run(c, *configPath); err != nil {
 		return err
 	}
 

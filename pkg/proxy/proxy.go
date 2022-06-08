@@ -77,6 +77,7 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 
 		if err := isTLSConn(srcConn); err != nil {
 			log.Println(err)
+			srcConn.Close()
 			continue
 		}
 
@@ -113,4 +114,10 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 
 	_, err = io.Copy(targetWr, srcConn)
 	errCopy(err)
+}
+
+func (p *Proxy) Shutdown() {
+	close(p.Quit)
+	p.Listener.Close()
+	p.Wg.Wait()
 }
