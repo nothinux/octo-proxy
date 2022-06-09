@@ -579,7 +579,7 @@ func TestValidateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name: "set timeout on listener and target",
+			Name: "set timeout on listener, target and set mirror to default",
 			Config: &Config{
 				[]ServerConfig{
 					{
@@ -593,6 +593,10 @@ func TestValidateConfig(t *testing.T) {
 							Host:    "127.0.0.1",
 							Port:    "80",
 							Timeout: 200,
+						},
+						Mirror: HostConfig{
+							Host: "127.0.0.1",
+							Port: "9999",
 						},
 					},
 				},
@@ -610,6 +614,11 @@ func TestValidateConfig(t *testing.T) {
 							Host:    "127.0.0.1",
 							Port:    "80",
 							Timeout: 200,
+						},
+						Mirror: HostConfig{
+							Host:    "127.0.0.1",
+							Port:    "9999",
+							Timeout: 300,
 						},
 					},
 				},

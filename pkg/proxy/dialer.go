@@ -2,12 +2,14 @@ package proxy
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
+	"github.com/nothinux/octo-proxy/pkg/errors"
 )
 
 func newDial() *net.Dialer {
@@ -35,11 +37,10 @@ func dialTarget(hc config.HostConfig) (net.Conn, error) {
 func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 	t, err := dialTarget(c.Target)
 	if err != nil {
-		log.Printf("can't dial backend %s:%s %v", c.Target.Host, c.Target.Port, err)
 		//srcConn.Close()
-		return nil, nil, err
+		return nil, nil, errors.New("target", fmt.Sprintf("can't dial backend %s:%s %v", c.Target.Host, c.Target.Port, err))
 	}
-	t.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Listener.Timeout)))
+	t.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Target.Timeout)))
 
 	var m net.Conn
 

@@ -18,6 +18,7 @@ type Proxy struct {
 	Listener net.Listener
 	Quit     chan interface{}
 	Wg       sync.WaitGroup
+	sync.Mutex
 }
 
 // New initialize new proxy
@@ -50,11 +51,15 @@ func (p *Proxy) Run(c config.ServerConfig) {
 		}
 
 		tlsListen := tls.NewListener(l, tlsConf.Config)
+		p.Lock()
 		p.Listener = tlsListen
+		p.Unlock()
 
 		log.Printf("running %s with tls mode %s", c.Name, c.Listener.TLSConfig.Mode)
 	} else {
+		p.Lock()
 		p.Listener = l
+		p.Unlock()
 	}
 
 	p.handleConn(c)
@@ -117,7 +122,9 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 }
 
 func (p *Proxy) Shutdown() {
+	p.Lock()
 	close(p.Quit)
 	p.Listener.Close()
 	p.Wg.Wait()
+	p.Unlock()
 }
