@@ -75,6 +75,9 @@ func TestRunningRunner(t *testing.T) {
 		}
 	}
 
+	// wait till listener up
+	time.Sleep(1 * time.Second)
+
 	// shutdown octo-proxy
 	shutdown(octo.Proxies)
 

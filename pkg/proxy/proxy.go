@@ -124,7 +124,9 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 func (p *Proxy) Shutdown() {
 	p.Lock()
 	close(p.Quit)
-	p.Listener.Close()
+	if p.Listener != nil {
+		p.Listener.Close()
+	}
 	p.Wg.Wait()
 	p.Unlock()
 }

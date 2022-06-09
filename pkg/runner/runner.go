@@ -109,8 +109,6 @@ func shutdown(proxies map[string]*proxy.Proxy) {
 	log.Println("shutdown octo-proxy")
 
 	for _, p := range proxies {
-		if p.Listener != nil {
-			p.Shutdown()
-		}
+		p.Shutdown()
 	}
 }
