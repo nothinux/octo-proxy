@@ -1,0 +1,8 @@
+servers:
+- name: new-server
+  listener:
+    host: 127.0.0.1
+    port: 9999
+  target:
+    host: 
+    port: 80
