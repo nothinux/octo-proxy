@@ -79,7 +79,7 @@ func TestRunningRunner(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// shutdown octo-proxy
-	shutdown(octo.Proxies)
+	shutdown(octo.Proxies, nil)
 
 }
 

@@ -10,6 +10,14 @@ import (
 
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/nothinux/octo-proxy/pkg/config"
+	"github.com/nothinux/octo-proxy/pkg/metrics"
+)
+
+var (
+	activeConn      = metrics.AddGauge("octo_conn_active", "current active connection")
+	activeConnTotal = metrics.AddCounter("octo_conn_active_total", "total active connection")
+	connErrTotal    = metrics.AddCounter("octo_conn_error_total", "total connection error. include tcp and tls")
+	tlsConnErrTotal = metrics.AddCounter("octo_conn_tls_error_total", "total tls connection error")
 )
 
 // Proxy hold running proxy data
@@ -75,14 +83,20 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 				return
 			default:
 				log.Println(err)
+				connErrTotal.Inc()
 			}
 		}
+
+		activeConn.Inc()
+		defer activeConn.Dec()
+		activeConnTotal.Inc()
 
 		srcConn.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Listener.Timeout)))
 
 		if err := isTLSConn(srcConn); err != nil {
 			log.Println(err)
 			srcConn.Close()
+			tlsConnErrTotal.Inc()
 			continue
 		}
 
