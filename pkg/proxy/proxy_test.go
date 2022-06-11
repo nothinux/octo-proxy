@@ -358,7 +358,7 @@ func TestProxyMutualTLSWhenClientUseWrongCA(t *testing.T) {
 		Port: "9000",
 		TLSConfig: config.TLSConfig{
 			Mode:   "mutual",
-			CaCert: "../testdata/ca-cert.pem",
+			CaCert: "../testdata/wrong-ca.pem",
 			Cert:   "../testdata/localhost.pem",
 			Key:    "../testdata/localhost-key.pem",
 		},
