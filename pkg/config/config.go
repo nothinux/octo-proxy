@@ -175,8 +175,14 @@ func errorCheck(i int, hct hostConfigType, c *HostConfig) error {
 		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host not specified", i, hct.String()))
 	}
 
-	if !hostIPIsValid(c.Host) {
-		return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host is not valid ip address", i, hct.String()))
+	if hct != slistener {
+		if !hostIsValid(c.Host) {
+			return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host is not valid ip address", i, hct.String()))
+		}
+	} else {
+		if !hostIPIsValid(c.Host) {
+			return errors.New("server", fmt.Sprintf("host in servers.[%d].%s.host is not valid ip address", i, hct.String()))
+		}
 	}
 
 	if c.Port == "" {

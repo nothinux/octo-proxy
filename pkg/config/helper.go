@@ -4,8 +4,20 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 )
+
+var ipRegex = regexp.MustCompile("(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])")
+
+func hostIsValid(h string) bool {
+	if ipRegex.MatchString(h) {
+		return hostIPIsValid(h)
+	}
+
+	// if not match with regex, then assume its a hostname
+	return true
+}
 
 func hostIPIsValid(h string) bool {
 	return net.ParseIP(h) != nil
