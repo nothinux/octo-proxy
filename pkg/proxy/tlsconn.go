@@ -24,6 +24,7 @@ func newTLS() *ProxyTLS {
 	}
 }
 
+// getTLSConfig returns a TLS Config for the simple and mutual tls
 func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	var caPool *x509.CertPool
 	var pair tls.Certificate

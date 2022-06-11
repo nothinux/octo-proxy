@@ -8,7 +8,7 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/config"
 )
 
-func SendData(hc config.HostConfig, message []byte) error {
+func SendData(hc config.HostConfig, message []byte, readResponse bool) error {
 	d, err := dialTarget(hc)
 	if err != nil {
 		log.Println(err)
@@ -20,6 +20,16 @@ func SendData(hc config.HostConfig, message []byte) error {
 		log.Println(err)
 		return err
 	}
+
+	if readResponse {
+		buf := make([]byte, 5)
+		_, err = d.Read(buf)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
 	d.Close()
 
 	return nil

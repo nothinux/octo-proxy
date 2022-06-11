@@ -39,7 +39,7 @@ func TestProxy(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// send data to octo-proxy
-	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte); err != nil {
+	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -85,7 +85,7 @@ func TestProxyWithMirror(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// send data to octo-proxy
-	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte); err != nil {
+	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -146,7 +146,7 @@ func TestProxyWithSimpleTLS(t *testing.T) {
 			CaCert: "../testdata/ca-cert.pem",
 		},
 	}
-	if err := SendData(hc, messageByte); err != nil {
+	if err := SendData(hc, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -192,18 +192,17 @@ func TestProxyWithMutualTLS(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// send data to octo-proxy
-	// send data to octo-proxy
 	hc := config.HostConfig{
 		Host: "127.0.0.1",
 		Port: "9000",
 		TLSConfig: config.TLSConfig{
-			Mode:   "simple",
+			Mode:   "mutual",
 			CaCert: "../testdata/ca-cert.pem",
 			Cert:   "../testdata/client.pem",
 			Key:    "../testdata/client-key.pem",
 		},
 	}
-	if err := SendData(hc, messageByte); err != nil {
+	if err := SendData(hc, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -214,6 +213,163 @@ func TestProxyWithMutualTLS(t *testing.T) {
 		r := bytes.Compare(messageByte, res)
 		if r != 0 {
 			t.Fatalf("got %v, want %v", res, messageByte)
+		}
+	})
+
+	// shutdown octo-proxy
+	p.Shutdown()
+}
+
+func TestProxyMutualTLSWhenClientUsingInvalidCertificate(t *testing.T) {
+	var wg sync.WaitGroup
+	result := make(chan []byte)
+
+	// start target server
+	backend := testhelper.RunTestServer(&wg, result)
+
+	// prepare configuration for octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ServerConfigs[0].Listener.TLSConfig = config.TLSConfig{
+		Mode:   "mutual",
+		Cert:   "../testdata/cert.pem",
+		Key:    "../testdata/cert-key.pem",
+		CaCert: "../testdata/ca-cert.pem",
+		Role:   config.Role{Server: true},
+	}
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	// send data to octo-proxy
+	hc := config.HostConfig{
+		Host: "127.0.0.1",
+		Port: "9000",
+		TLSConfig: config.TLSConfig{
+			Mode:   "mutual",
+			CaCert: "../testdata/ca-cert.pem",
+			Cert:   "../testdata/localhost.pem",
+			Key:    "../testdata/localhost-key.pem",
+		},
+	}
+
+	// check data received by test server
+	t.Run("test get response from octo-proxy", func(t *testing.T) {
+		if err := SendData(hc, messageByte, true); err != nil {
+			if !strings.Contains(err.Error(), "tls: bad certificate") {
+				t.Fatalf("got %v, want response contain tls: bad certificate", err)
+			}
+		}
+	})
+
+	// shutdown octo-proxy
+	p.Shutdown()
+}
+
+func TestProxyMutualTLSWhenClientNotProvideCA(t *testing.T) {
+	var wg sync.WaitGroup
+	result := make(chan []byte)
+
+	// start target server
+	backend := testhelper.RunTestServer(&wg, result)
+
+	// prepare configuration for octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ServerConfigs[0].Listener.TLSConfig = config.TLSConfig{
+		Mode:   "mutual",
+		Cert:   "../testdata/cert.pem",
+		Key:    "../testdata/cert-key.pem",
+		CaCert: "../testdata/ca-cert.pem",
+		Role:   config.Role{Server: true},
+	}
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	// send data to octo-proxy
+	// send data to octo-proxy
+	hc := config.HostConfig{
+		Host: "127.0.0.1",
+		Port: "9000",
+		TLSConfig: config.TLSConfig{
+			Mode: "mutual",
+			Cert: "../testdata/localhost.pem",
+			Key:  "../testdata/localhost-key.pem",
+		},
+	}
+
+	// check data received by test server
+	t.Run("test get response from octo-proxy", func(t *testing.T) {
+		if err := SendData(hc, messageByte, true); err != nil {
+			if !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+				t.Fatalf("got %v, want response contain certificate signed by unknown authority", err)
+			}
+		}
+	})
+
+	// shutdown octo-proxy
+	p.Shutdown()
+}
+
+func TestProxyMutualTLSWhenClientUseWrongCA(t *testing.T) {
+	var wg sync.WaitGroup
+	result := make(chan []byte)
+
+	// start target server
+	backend := testhelper.RunTestServer(&wg, result)
+
+	// prepare configuration for octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ServerConfigs[0].Listener.TLSConfig = config.TLSConfig{
+		Mode:   "mutual",
+		Cert:   "../testdata/cert.pem",
+		Key:    "../testdata/cert-key.pem",
+		CaCert: "../testdata/ca-cert.pem",
+		Role:   config.Role{Server: true},
+	}
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	// send data to octo-proxy
+	// send data to octo-proxy
+	hc := config.HostConfig{
+		Host: "127.0.0.1",
+		Port: "9000",
+		TLSConfig: config.TLSConfig{
+			Mode:   "mutual",
+			CaCert: "../testdata/ca-cert.pem",
+			Cert:   "../testdata/localhost.pem",
+			Key:    "../testdata/localhost-key.pem",
+		},
+	}
+
+	// check data received by test server
+	t.Run("test get response from octo-proxy", func(t *testing.T) {
+		if err := SendData(hc, messageByte, true); err != nil {
+			if !strings.Contains(err.Error(), "certificate signed by unknown authority") {
+				t.Fatalf("got %v, want response contain certificate signed by unknown authority", err)
+			}
 		}
 	})
 
@@ -255,7 +411,7 @@ func TestProxyWithTargetSimpleTLS(t *testing.T) {
 		Host: "127.0.0.1",
 		Port: "9000",
 	}
-	if err := SendData(hc, messageByte); err != nil {
+	if err := SendData(hc, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -313,7 +469,7 @@ func TestProxyWithTargetMutualTLS(t *testing.T) {
 		Host: "127.0.0.1",
 		Port: "9000",
 	}
-	if err := SendData(hc, messageByte); err != nil {
+	if err := SendData(hc, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -392,7 +548,7 @@ func TestUnreachableMirror(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// send data to octo-proxy
-	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte); err != nil {
+	if err := SendData(cfg.ServerConfigs[0].Listener, messageByte, false); err != nil {
 		t.Fatal(err)
 	}
 
