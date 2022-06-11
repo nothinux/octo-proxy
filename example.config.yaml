@@ -1,13 +1,14 @@
 servers:
-- name: nn
+- name: web-with-mtls
   listener:
     host: 127.0.0.1
     port: 8080
     tlsConfig:
       mode: mutual
-      cert: /home/nothinux/Development/guardian/certs/localhost.pem
-      key: /home/nothinux/Development/guardian/certs/localhost-key.pem
-      caCert: /home/nothinux/Development/guardian/certs/ca-cert.pem
+      cert: certs/localhost.pem
+      key: certs/localhost-key.pem
+      caCert: certs/ca-cert.pem
+    # set timeout default is 300
     timeout: 60
   target:
     host: 172.17.0.2
@@ -15,7 +16,7 @@ servers:
     timeout: 60
     tlsConfig:
       mode: simple
-      caCert: /home/nothinux/Development/guardian/certs/ca-cert.pem
+      caCert: certs/ca-cert.pem
   mirror:
     host: 172.17.0.3
     port: 80
