@@ -19,3 +19,8 @@ jobs:
 
       - name: Test
         run: go test -v -count=1 ./... -race -covermode=atomic -coverprofile=coverage.out
+
+      - name: upload coverage to codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
