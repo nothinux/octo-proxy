@@ -80,7 +80,7 @@ servers:
 octo -config config.yaml
 ```
 
-See all configuration in [CONFIGUREATION.md](https://github.com/nothinux/octo-proxy/tree/master/docs/CONFIGURATION.md)
+See all configuration in [CONFIGURATION.md](https://github.com/nothinux/octo-proxy/tree/master/docs/CONFIGURATION.md)
 
 ### LICENSE
 [LICENSE](https://github.com/nothinux/octo-proxy/blob/main/LICENSE.md)
