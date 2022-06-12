@@ -1,7 +1,7 @@
 # 🐙 Octo-Proxy  
-Octo-proxy or `octo` is simple TCP & TLS Proxy with mutual authentication and mirroring/shadowing support.
+Octo-proxy or `octo` is simple TCP & TLS Proxy with mutual authentication and traffic mirroring/shadowing support.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/nothinux/octo-proxy)](https://goreportcard.com/report/github.com/nothinux/octo-proxy)  ![test status](https://github.com/nothinux/octo-proxy/actions/workflows/test.yml/badge.svg?branch=master)  
+[![Go Report Card](https://goreportcard.com/badge/github.com/nothinux/octo-proxy)](https://goreportcard.com/report/github.com/nothinux/octo-proxy)  ![test status](https://github.com/nothinux/octo-proxy/actions/workflows/test.yml/badge.svg?branch=main)  [![codecov](https://codecov.io/gh/nothinux/octo-proxy/branch/main/graph/badge.svg?token=HBRTW7DX0K)](https://codecov.io/gh/nothinux/octo-proxy)
 
 ### Feature
 - Accept TCP connection and forward/mirror it to TCP
@@ -81,6 +81,12 @@ octo -config config.yaml
 ```
 
 See all configuration in [CONFIGURATION.md](https://github.com/nothinux/octo-proxy/tree/master/docs/CONFIGURATION.md)
+
+### Reloading Configuration
+After changing configuration, send signal `SIGUSR` or `SIGUSR2` to `octo` process. Configuration will be reloaded if configuration is valid.
+
+### Monitoring
+Metrics running at `http://127.0.0.1:9123`
 
 ### LICENSE
 [LICENSE](https://github.com/nothinux/octo-proxy/blob/main/LICENSE.md)
