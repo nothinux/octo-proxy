@@ -38,3 +38,5 @@
 | --------- | ------------- | ------------------------------- 
 | `simple`  | `<string>`    | Use this option to use simple TLS, and will only verify the server identity. Required option `mode: simple` and `caCert` if root certificate not stored in trust store |
 | `mutual`  | `<string>`    | Use this option to use mutual TLS (mTLS). With this mode, server and client will verify each other. Required option `mode: mutual`, `caCert`, `cert`, and `key`. |
+
+> Currently, in mutual mode octo-proxy will only verify the ip address of it's client and try to match it with ip sans in certificate. In the future we will adding more alternative names verification.

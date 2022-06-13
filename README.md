@@ -14,7 +14,7 @@ Octo-proxy or `octo` is simple TCP & TLS Proxy with mutual authentication and tr
 ### Usage
 #### Run octo with ad-hoc command
 ```
-octo -listener 127.0.0.1:8080 -target 127.0.0.1:80
+octo-proxy -listener 127.0.0.1:8080 -target 127.0.0.1:80
 ```
 
 #### Run Octo as TCP Proxy
@@ -53,7 +53,7 @@ servers:
 ```
 
 ```
-octo -config config.yaml
+octo-proxy -config config.yaml
 ```
 
 #### Run Octo as TLS Proxy and Mirror traffic to other backend
@@ -77,16 +77,18 @@ servers:
 ```
 
 ```
-octo -config config.yaml
+octo-proxy -config config.yaml
 ```
 
 See all configuration in [CONFIGURATION.md](https://github.com/nothinux/octo-proxy/tree/master/docs/CONFIGURATION.md)
 
-### Reloading Configuration
-After changing configuration, send signal `SIGUSR` or `SIGUSR2` to `octo` process. Configuration will be reloaded if configuration is valid.
+### Reloading Octo-proxy
+After changing configuration or certificates, send signal `SIGUSR1` or `SIGUSR2` to `octo-proxy` process. Configuration will be reloaded if the configuration is valid.
+
+Octo-proxy use `SO_REUSEPORT` to binding the listener, so every reload triggered octo-proxy will create new listener and drop old listener after new listener created, by using this approach octo-proxy can minimize dropped connection when reload triggered.
 
 ### Monitoring
-Metrics running at `http://127.0.0.1:9123`
+Metrics running at `http://127.0.0.1:9123/metrics`
 
 ### LICENSE
 [LICENSE](https://github.com/nothinux/octo-proxy/blob/main/LICENSE.md)
