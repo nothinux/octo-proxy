@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var ipRegex = regexp.MustCompile("(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])")
@@ -17,6 +18,22 @@ func hostIsValid(h string) bool {
 
 	// if not match with regex, then assume its a hostname
 	return true
+}
+
+func parseSubjectAltNames(sans []string) *SubjectAltName {
+	configSAN := &SubjectAltName{}
+
+	for _, san := range sans {
+		if ipRegex.MatchString(san) {
+			configSAN.IPAddress = append(configSAN.IPAddress, san)
+		} else if strings.Contains(san, "://") {
+			configSAN.Uri = append(configSAN.Uri, san)
+		} else {
+			configSAN.DNS = append(configSAN.DNS, san)
+		}
+	}
+
+	return configSAN
 }
 
 func hostIPIsValid(h string) bool {

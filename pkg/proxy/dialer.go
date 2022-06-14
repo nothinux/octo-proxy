@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"reflect"
 	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
@@ -50,7 +51,7 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 
 	var m net.Conn
 
-	if (config.HostConfig{}) != c.Mirror {
+	if !reflect.DeepEqual(config.HostConfig{}, c.Mirror) {
 		m, err = dialTarget(c.Mirror)
 		if err != nil {
 			mirrorErr.Inc()

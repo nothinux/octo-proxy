@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/nothinux/octo-proxy/pkg/errors"
@@ -38,11 +39,19 @@ type HostConfig struct {
 }
 
 type TLSConfig struct {
-	CaCert string `yaml:"caCert"`
-	Cert   string `yaml:"cert"`
-	Key    string `yaml:"key"`
-	Mode   string `yaml:"mode"`
+	CaCert          string   `yaml:"caCert"`
+	Cert            string   `yaml:"cert"`
+	Key             string   `yaml:"key"`
+	Mode            string   `yaml:"mode"`
+	SubjectAltNames []string `yaml:"subjectAltNames"`
+	SubjectAltName
 	Role
+}
+
+type SubjectAltName struct {
+	IPAddress []string
+	Uri       []string
+	DNS       []string
 }
 
 type Role struct {
@@ -141,20 +150,23 @@ func validateConfig(c *Config) (*Config, error) {
 		}
 
 		// check config for error only when configuration is not nil
-		if (HostConfig{}) != *mirror {
+		if !reflect.DeepEqual(HostConfig{}, *mirror) {
 			if err := errorCheck(i, smirror, mirror); err != nil {
 				return nil, err
 			}
 
 			setTimeout(mirror)
+			setSAN(mirror)
 		}
 		// set all listener role to server
-		if (TLSConfig{}) != c.ServerConfigs[i].Listener.TLSConfig {
+		if !reflect.DeepEqual(TLSConfig{}, c.ServerConfigs[i].Listener.TLSConfig) {
 			listener.TLSConfig.Role.Server = true
 		}
 
 		setTimeout(listener)
 		setTimeout(target)
+		setSAN(listener)
+		setSAN(target)
 	}
 
 	return c, nil
@@ -166,8 +178,14 @@ func setTimeout(c *HostConfig) {
 	}
 }
 
+func setSAN(c *HostConfig) {
+	if len(c.TLSConfig.SubjectAltNames) != 0 {
+		c.TLSConfig.SubjectAltName = *parseSubjectAltNames(c.TLSConfig.SubjectAltNames)
+	}
+}
+
 func errorCheck(i int, hct hostConfigType, c *HostConfig) error {
-	if (HostConfig{}) == *c {
+	if reflect.DeepEqual(HostConfig{}, *c) {
 		return errors.New("server", fmt.Sprintf("no %s configuration in servers.[%d]", hct.String(), i))
 	}
 
