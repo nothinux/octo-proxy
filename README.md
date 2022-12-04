@@ -8,6 +8,7 @@ Octo-proxy or `octo` is simple TCP & TLS Proxy with mutual authentication and tr
 - Accept TCP connection and forward/mirror it to TLS (w/ mTLS)
 - Accept TLS (w/ mTLS) connection and forward/mirror it to TCP
 - Accept TLS (w/ mTLS) connection and forward/mirror it to TLS (w/ mTLS)
+- Support for multiple targets, accessed in random order (load balancer)
 - Reload configuration or certificate without dropping connection
 - Expose metrics that can be consumed by prometheus
 
@@ -25,9 +26,11 @@ servers:
   listener:
     host: 127.0.0.1
     port: 8080
-  target:
-    host: 127.0.0.1
-    port: 80
+  targets:
+    - host: 127.0.0.1
+      port: 80
+    - host: 127.0.0.1
+      port: 81
 ```
 
 ```
@@ -47,9 +50,9 @@ servers:
       caCert: /tmp/ca-cert.pem
       cert: /tmp/cert.pem
       key: /tmp/cert-key.pem
-  target:
-    host: 127.0.0.1
-    port: 80
+  targets:
+    - host: 127.0.0.1
+      port: 80
 ```
 
 ```
@@ -68,9 +71,9 @@ servers:
       mode: simple
       cert: /tmp/cert.pem
       key: /tmp/cert-key.pem
-  target:
-    host: 127.0.0.1
-    port: 80
+  targets:
+    - host: 127.0.0.1
+      port: 80
   mirror:
     host: 172.16.0.1
     port: 80

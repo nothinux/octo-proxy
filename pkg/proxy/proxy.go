@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -44,11 +45,17 @@ func (p *Proxy) Run(c config.ServerConfig) {
 		log.Fatal(err)
 	}
 
+	ts := []string{}
+
+	for _, target := range c.Targets {
+		ts = append(ts, fmt.Sprintf("%s:%s", target.Host, target.Port))
+	}
+
 	log.Printf(
-		"listening %s on %s:%s -> %s:%s",
+		"listening %s on %s:%s -> %v",
 		c.Name,
 		c.Listener.Host, c.Listener.Port,
-		c.Target.Host, c.Target.Port,
+		ts,
 	)
 
 	tc := c.Listener.TLSConfig

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/runner"
@@ -48,7 +49,7 @@ func runMain() error {
 		configPath = flag.String("config", "config.yaml", "Specify config location path")
 		ver        = flag.Bool("version", false, "Print octo-proxy version")
 		listener   = flag.String("listener", "127.0.0.1:5000", "Specify listener for running octo-proxy")
-		target     = flag.String("target", "", "Specify target for running octo-proxy")
+		target     = flag.String("target", "", "Specify comma-separated list of targets for running octo-proxy")
 	)
 
 	flag.Usage = func() {
@@ -60,7 +61,9 @@ func runMain() error {
 
 	// run with flag
 	if *target != "" {
-		c, err := config.GenerateConfig(*listener, *target)
+		targets := strings.Split(*target, ",")
+
+		c, err := config.GenerateConfig(*listener, targets)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,6 @@ servers:
     host: 127.0.0.1
     port: 9999
     timeout: 60
-  target:
-    host: 127.0.0.1
-    port: 80
+  targets:
+    - host: 127.0.0.1
+      port: 80
