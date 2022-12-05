@@ -11,6 +11,7 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
 	"github.com/nothinux/octo-proxy/pkg/proxy"
+	"github.com/okzk/sdnotify"
 )
 
 // Octo hold list proxy server information
@@ -36,6 +37,8 @@ func Run(c *config.Config, cPath string) error {
 
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Notify(sigReload, syscall.SIGUSR1, syscall.SIGUSR2)
+
+	sdnotify.Ready()
 
 alive:
 	for {

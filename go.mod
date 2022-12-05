@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/kavu/go_reuseport v1.5.0
+	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd
 	github.com/prometheus/client_golang v1.12.2
 	gopkg.in/yaml.v2 v2.4.0
 )
