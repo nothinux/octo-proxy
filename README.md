@@ -18,6 +18,8 @@ Octo-proxy or `octo` is simple TCP & TLS Proxy with mutual authentication and tr
 octo-proxy -listener 127.0.0.1:8080 -target 127.0.0.1:80
 ```
 
+Run with `-debug` to get a more verbose log output.
+
 #### Run Octo as TCP Proxy
 ``` yaml
 // config.yaml

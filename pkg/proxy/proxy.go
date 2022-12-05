@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -12,6 +11,7 @@ import (
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -42,7 +42,7 @@ func New(name string) *Proxy {
 func (p *Proxy) Run(c config.ServerConfig) {
 	l, err := reuseport.Listen("tcp", net.JoinHostPort(c.Listener.Host, c.Listener.Port))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("failed to listen")
 	}
 
 	ts := []string{}
@@ -51,18 +51,18 @@ func (p *Proxy) Run(c config.ServerConfig) {
 		ts = append(ts, fmt.Sprintf("%s:%s", target.Host, target.Port))
 	}
 
-	log.Printf(
-		"listening %s on %s:%s -> %v",
-		c.Name,
-		c.Listener.Host, c.Listener.Port,
-		ts,
-	)
+	log.Info().
+		Str("name", c.Name).
+		Str("host", c.Listener.Host).
+		Str("port", c.Listener.Port).
+		Strs("targets", ts).
+		Msg("running server")
 
 	tc := c.Listener.TLSConfig
 	if tc.IsSimple() || tc.IsMutual() {
 		tlsConf, err := getTLSConfig(tc)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("failed to get TLS config")
 		}
 
 		tlsListen := tls.NewListener(l, tlsConf.Config)
@@ -70,7 +70,10 @@ func (p *Proxy) Run(c config.ServerConfig) {
 		p.Listener = tlsListen
 		p.Unlock()
 
-		log.Printf("running %s with tls mode %s", c.Name, c.Listener.TLSConfig.Mode)
+		log.Info().
+			Str("name", c.Name).
+			Str("mode", c.Listener.TLSConfig.Mode).
+			Msg("running in TLS mode")
 	} else {
 		p.Lock()
 		p.Listener = l
@@ -89,7 +92,10 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 			case <-p.Quit:
 				return
 			default:
-				log.Println(err)
+				log.Error().
+					Err(err).
+					Str("name", c.Name).
+					Msg("connection error")
 				connErrTotal.Inc()
 			}
 		}
@@ -101,7 +107,7 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 		srcConn.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Listener.Timeout)))
 
 		if err := isTLSConn(srcConn); err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("connection error")
 			srcConn.Close()
 			tlsConnErrTotal.Inc()
 			continue
@@ -119,7 +125,10 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 	targetConn, targetWr, err := getTargets(c)
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Err(err).
+			Str("name", c.Name).
+			Msg("failed to get targets")
 		srcConn.Close()
 		return
 	}

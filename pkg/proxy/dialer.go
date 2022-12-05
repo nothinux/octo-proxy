@@ -3,7 +3,6 @@ package proxy
 import (
 	"crypto/tls"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"reflect"
@@ -12,6 +11,7 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/errors"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -34,7 +34,11 @@ func dialTarget(hc config.HostConfig) (net.Conn, error) {
 			return nil, err
 		}
 
-		log.Println("called tls target")
+		log.Debug().
+			Str("host", hc.Host).
+			Str("port", hc.Port).
+			Msg("called tls target")
+
 		return tls.DialWithDialer(d, "tcp", net.JoinHostPort(hc.Host, hc.Port), tlsConf.Config)
 	}
 
@@ -73,7 +77,11 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 		m, err = dialTarget(c.Mirror)
 		if err != nil {
 			mirrorErr.Inc()
-			log.Printf("can't dial mirror backend %s:%s %v", c.Mirror.Host, c.Mirror.Port, err)
+			log.Warn().
+				Err(err).
+				Str("host", c.Mirror.Host).
+				Str("port", c.Mirror.Port).
+				Msg("can't dial mirror backend")
 		}
 		if m != nil {
 			m.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Mirror.Timeout)))
