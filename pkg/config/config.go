@@ -25,10 +25,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Name     string     `yaml:"name"`
-	Listener HostConfig `yaml:"listener"`
-	Target   HostConfig `yaml:"target"`
-	Mirror   HostConfig `yaml:"mirror"`
+	Name     string       `yaml:"name"`
+	Listener HostConfig   `yaml:"listener"`
+	Targets  []HostConfig `yaml:"targets"`
+	Mirror   HostConfig   `yaml:"mirror"`
 }
 
 type HostConfig struct {
@@ -100,12 +100,11 @@ func readConfig(r io.Reader) (*Config, error) {
 	return config, nil
 }
 
-func GenerateConfig(listener, target string) (*Config, error) {
+func GenerateConfig(listener string, targets []string) (*Config, error) {
 	l := strings.Split(listener, ":")
-	t := strings.Split(target, ":")
 
-	if len(l) != 2 || len(t) != 2 {
-		return nil, errors.New("error", "listener or target must be specified in format host:port")
+	if len(l) != 2 {
+		return nil, errors.New("error", "listener must be specified in format host:port")
 	}
 
 	c := &Config{
@@ -116,12 +115,23 @@ func GenerateConfig(listener, target string) (*Config, error) {
 					Host: l[0],
 					Port: l[1],
 				},
-				Target: HostConfig{
-					Host: t[0],
-					Port: t[1],
-				},
+				Targets: []HostConfig{},
 			},
 		},
+	}
+
+	for _, target := range targets {
+		t := strings.Split(target, ":")
+		if len(t) != 2 {
+			return nil, errors.New("error", "target must be specified in format host:port")
+		}
+
+		hc := HostConfig{
+			Host: t[0],
+			Port: t[1],
+		}
+
+		c.ServerConfigs[0].Targets = append(c.ServerConfigs[0].Targets, hc)
 	}
 
 	return validateConfig(c)
@@ -136,17 +146,25 @@ func validateConfig(c *Config) (*Config, error) {
 		return nil, errors.New("servers", "error no server configuration found")
 	}
 
-	for i := 0; i < len(c.ServerConfigs); i++ {
+	for i := range c.ServerConfigs {
 		listener := &c.ServerConfigs[i].Listener
-		target := &c.ServerConfigs[i].Target
 		mirror := &c.ServerConfigs[i].Mirror
 
 		if err := errorCheck(i, slistener, listener); err != nil {
 			return nil, err
 		}
 
-		if err := errorCheck(i, starget, target); err != nil {
-			return nil, err
+		if len(c.ServerConfigs[i].Targets) == 0 {
+			return nil, errors.New("server", fmt.Sprintf("no target configurations in servers.[%d]", i))
+		}
+
+		for j := range c.ServerConfigs[i].Targets {
+			if err := errorCheck(i, starget, &c.ServerConfigs[i].Targets[j]); err != nil {
+				return nil, err
+			}
+
+			setTimeout(&c.ServerConfigs[i].Targets[j])
+			setSAN(&c.ServerConfigs[i].Targets[j])
 		}
 
 		// check config for error only when configuration is not nil
@@ -164,9 +182,7 @@ func validateConfig(c *Config) (*Config, error) {
 		}
 
 		setTimeout(listener)
-		setTimeout(target)
 		setSAN(listener)
-		setSAN(target)
 	}
 
 	return c, nil

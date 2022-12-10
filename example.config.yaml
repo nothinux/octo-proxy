@@ -10,13 +10,13 @@ servers:
       caCert: certs/ca-cert.pem
     # set timeout default is 300
     timeout: 60
-  target:
-    host: 172.17.0.2
-    port: 80
-    timeout: 60
-    tlsConfig:
-      mode: simple
-      caCert: certs/ca-cert.pem
+  targets:
+    - host: 172.17.0.2
+      port: 80
+      timeout: 60
+      tlsConfig:
+        mode: simple
+        caCert: certs/ca-cert.pem
   mirror:
     host: 172.17.0.3
     port: 80

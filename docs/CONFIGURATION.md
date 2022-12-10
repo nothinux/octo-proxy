@@ -8,11 +8,11 @@
 
 ## Server
 
-| Field    | Type          | Description   | Required |
-| -------- | ------------- | ------------- | -------- |
-| name     | `<string>`    | Name of proxy | no       |
-| listener | [`Hostconfig`](#hostconfig)  | Set of listener related configuration, all of incoming request to octo-proxy will be handled by this listener.            | yes      |
-| target   | [`Hostconfig`](#hostconfig)  | Set of target related configuration, this target is backend which octo-proxy will forward all incoming request accepted by listener.            | yes      |
+| Field    | Type             | Description   | Required |
+| -------- | ---------------- | ------------- | -------- |
+| name     | `<string>`       | Name of proxy | no       |
+| listener | [`Hostconfig`]   | (#hostconfig) | Set of listener related configuration, all of incoming request to octo-proxy will be handled by this listener.            | yes      |
+| targets  | [`Hostconfig[]`] | (#hostconfig) | Set of target related configurations. These targets are backends which octo-proxy will forward all incoming traffic accepted by the listener.            | yes      |
 | mirror   | [`Hostconfig`](#hostconfig)  | Set of mirror related configuration, if this configuration is set, all incoming request will also forwarded to this mirror, unlike target, in mirror we implement fire & forget, every request will only forwarded, and the response will be ignored.            | no       |
 
 ## Hostconfig

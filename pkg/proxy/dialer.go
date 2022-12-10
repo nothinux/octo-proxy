@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"reflect"
 	"time"
@@ -41,13 +41,31 @@ func dialTarget(hc config.HostConfig) (net.Conn, error) {
 	return d.Dial("tcp", net.JoinHostPort(hc.Host, hc.Port))
 }
 
-func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
-	t, err := dialTarget(c.Target)
-	if err != nil {
+func dialTargets(hcs []config.HostConfig) (net.Conn, error) {
+	for _, hc := range hcs {
+		c, err := dialTarget(hc)
+		if err == nil {
+			c.SetDeadline(time.Now().Add(time.Second * time.Duration(hc.Timeout)))
+			return c, nil
+		}
+
 		targetErr.Inc()
-		return nil, nil, errors.New("target", fmt.Sprintf("can't dial backend %s:%s %v", c.Target.Host, c.Target.Port, err))
 	}
-	t.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Target.Timeout)))
+
+	return nil, errors.New("targets", "no backends could be reached")
+}
+
+func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
+	targets := c.Targets
+
+	rand.Shuffle(len(targets), func(i, j int) {
+		targets[i], targets[j] = targets[j], targets[i]
+	})
+
+	t, err := dialTargets(targets)
+	if err != nil {
+		return nil, nil, errors.New(c.Name, err.Error())
+	}
 
 	var m net.Conn
 

@@ -25,7 +25,7 @@ func TestRunningRunner(t *testing.T) {
 		t.Fatal(err)
 	}
 	// replace port in target with backend create previously
-	c.ServerConfigs[0].Target.Port = strings.Split(backend, ":")[1]
+	c.ServerConfigs[0].Targets[0].Port = strings.Split(backend, ":")[1]
 
 	// starting octo proxy
 	ss := &Server{c.ServerConfigs}
