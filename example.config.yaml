@@ -24,6 +24,6 @@ servers:
   listener:
     host: 127.0.0.1
     port: 8081
-  target:
-    host: 127.0.0.1
-    port: 80
+  targets:
+    - host: 127.0.0.1
+      port: 80
