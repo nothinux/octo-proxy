@@ -1,9 +1,12 @@
 package metrics
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/nothinux/octo-proxy/pkg/config"
+	"github.com/nothinux/octo-proxy/pkg/tlsconn"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -11,18 +14,24 @@ type Metrics struct {
 	*http.Server
 }
 
-func New() *Metrics {
+func New(c config.HostConfig) (*Metrics, error) {
 	r := http.NewServeMux()
 	r.Handle("/metrics", promhttp.Handler())
 
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         ":9123",
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+	tlsConf, err := tlsconn.GetTLSConfig(c.TLSConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	return &Metrics{srv}
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         fmt.Sprintf("%s:%s", c.Host, c.Port),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		TLSConfig:    tlsConf.Config,
+	}
+
+	return &Metrics{srv}, nil
 }
 
 func (m *Metrics) Run() error {

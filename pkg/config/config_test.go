@@ -112,6 +112,7 @@ func TestGenerateConfig(t *testing.T) {
 		Name           string
 		Listener       string
 		Targets        []string
+		Metrics        string
 		expectedConfig *Config
 		expectedError  string
 	}{
@@ -119,8 +120,9 @@ func TestGenerateConfig(t *testing.T) {
 			Name:     "Test valid listener and target",
 			Listener: "127.0.0.1:8080",
 			Targets:  []string{"127.0.0.1:80"},
+			Metrics:  "127.0.0.1:9123",
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "default",
 						Listener: HostConfig{
@@ -136,6 +138,10 @@ func TestGenerateConfig(t *testing.T) {
 							},
 						},
 					},
+				},
+				MetricsConfig: HostConfig{
+					Host: "127.0.0.1",
+					Port: "9123",
 				},
 			},
 		},
@@ -181,11 +187,27 @@ func TestGenerateConfig(t *testing.T) {
 			expectedConfig: nil,
 			expectedError:  "target must be specified in format host:port",
 		},
+		{
+			Name:           "Test invalid metrics server 1",
+			Listener:       "127.0.0.1:8080",
+			Targets:        []string{"127.0.0.1:8080"},
+			Metrics:        "localhost",
+			expectedConfig: nil,
+			expectedError:  "metrics server address must be specified in format host:port",
+		},
+		{
+			Name:           "Test invalid metrics server 2",
+			Listener:       "127.0.0.1:8080",
+			Targets:        []string{"127.0.0.1:8080"},
+			Metrics:        "localhost:80:8080",
+			expectedConfig: nil,
+			expectedError:  "metrics server address must be specified in format host:port",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			c, err := GenerateConfig(tt.Listener, tt.Targets)
+			c, err := GenerateConfig(tt.Listener, tt.Targets, tt.Metrics)
 			if err != nil {
 				if !strings.Contains(err.Error(), tt.expectedError) {
 					t.Fatalf("got %v, want %s", err, tt.expectedError)
@@ -210,7 +232,7 @@ func TestReadConfig(t *testing.T) {
 			Name:   "valid yaml file",
 			Config: validConfig,
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -261,7 +283,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "valid config",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -278,7 +300,7 @@ func TestValidateConfig(t *testing.T) {
 				},
 			},
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -300,7 +322,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no server config",
 			Config: &Config{
-				[]ServerConfig{},
+				ServerConfigs: []ServerConfig{},
 			},
 			expectedConfig: nil,
 			expectedError:  "error no server configuration found",
@@ -314,7 +336,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no listener config",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Targets: []HostConfig{
@@ -332,7 +354,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no target config",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -348,7 +370,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no host in listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -369,7 +391,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "invalid host in listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -391,7 +413,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no port in listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -412,7 +434,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "invalid port in listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -434,7 +456,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no host in target",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -455,7 +477,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "invalid host in target",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -477,7 +499,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "invalid port in target",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -499,7 +521,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no host in mirror",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -524,7 +546,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "no port in mirror",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -549,7 +571,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "port in mirror is invalid",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -575,7 +597,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "set timeout on listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -593,7 +615,7 @@ func TestValidateConfig(t *testing.T) {
 				},
 			},
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -615,7 +637,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "set timeout on listener, target and set mirror to default",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -638,7 +660,7 @@ func TestValidateConfig(t *testing.T) {
 				},
 			},
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -665,7 +687,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "valid tlsConfig on listener",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -688,7 +710,7 @@ func TestValidateConfig(t *testing.T) {
 				},
 			},
 			expectedConfig: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -719,7 +741,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "tlsConfig mode is mutual but no cert provided",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -746,7 +768,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "tlsConfig mode is mutual but no key provided",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -773,7 +795,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "caCert, cert, and key is set, but mode is not set",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -800,7 +822,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "check if mode is not mutual or simple",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
@@ -828,7 +850,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			Name: "check if mode is nil",
 			Config: &Config{
-				[]ServerConfig{
+				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{

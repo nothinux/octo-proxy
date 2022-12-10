@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"crypto/tls"
+	goerrors "errors"
 	"fmt"
 	"io"
 	"net"
@@ -11,6 +12,7 @@ import (
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
+	"github.com/nothinux/octo-proxy/pkg/tlsconn"
 	"github.com/rs/zerolog/log"
 )
 
@@ -60,7 +62,7 @@ func (p *Proxy) Run(c config.ServerConfig) {
 
 	tc := c.Listener.TLSConfig
 	if tc.IsSimple() || tc.IsMutual() {
-		tlsConf, err := getTLSConfig(tc)
+		tlsConf, err := tlsconn.GetTLSConfig(tc)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to get TLS config")
 		}
@@ -81,6 +83,20 @@ func (p *Proxy) Run(c config.ServerConfig) {
 	}
 
 	p.handleConn(c)
+}
+
+func isTLSConn(nc net.Conn) error {
+	if _, ok := nc.(*tls.Conn); ok {
+		if err := nc.(*tls.Conn).Handshake(); err != nil {
+			return err
+		}
+
+		if !nc.(*tls.Conn).ConnectionState().HandshakeComplete {
+			return goerrors.New("handshake failed")
+		}
+	}
+
+	return nil
 }
 
 // handleConn accept incoming connection and forward it

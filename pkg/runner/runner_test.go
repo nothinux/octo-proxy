@@ -28,7 +28,7 @@ func TestRunningRunner(t *testing.T) {
 	c.ServerConfigs[0].Targets[0].Port = strings.Split(backend, ":")[1]
 
 	// starting octo proxy
-	ss := &Server{c.ServerConfigs}
+	ss := &Server{ServerConfigs: c.ServerConfigs}
 	proxies := ss.runProxy()
 
 	// store created proxy data

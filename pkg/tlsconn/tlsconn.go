@@ -1,10 +1,9 @@
-package proxy
+package tlsconn
 
 import (
 	"crypto/tls"
 	"crypto/x509"
-	goerrors "errors"
-	"net"
+	"os"
 	"strings"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
@@ -24,8 +23,8 @@ func newTLS() *ProxyTLS {
 	}
 }
 
-// getTLSConfig returns a TLS Config for the simple and mutual tls
-func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
+// GetTLSConfig returns a TLS Config for the simple and mutual tls
+func GetTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	var caPool *x509.CertPool
 	var pair tls.Certificate
 	var err error
@@ -96,7 +95,7 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 }
 
 func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {
-	cacert, err := readContent(c.CaCert)
+	cacert, err := os.ReadFile(c.CaCert)
 	if err != nil {
 		return nil, err
 	}
@@ -110,12 +109,12 @@ func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {
 }
 
 func getCertKeyPair(c config.TLSConfig) (tls.Certificate, error) {
-	pcert, err := readContent(c.Cert)
+	pcert, err := os.ReadFile(c.Cert)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
 
-	pkey, err := readContent(c.Key)
+	pkey, err := os.ReadFile(c.Key)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
@@ -126,18 +125,4 @@ func getCertKeyPair(c config.TLSConfig) (tls.Certificate, error) {
 	}
 
 	return cert, nil
-}
-
-func isTLSConn(nc net.Conn) error {
-	if _, ok := nc.(*tls.Conn); ok {
-		if err := nc.(*tls.Conn).Handshake(); err != nil {
-			return err
-		}
-
-		if !nc.(*tls.Conn).ConnectionState().HandshakeComplete {
-			return goerrors.New("handshake failed")
-		}
-	}
-
-	return nil
 }
