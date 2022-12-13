@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/metrics"
 	"github.com/nothinux/octo-proxy/pkg/proxy"
 	"github.com/okzk/sdnotify"
+	"github.com/rs/zerolog/log"
 )
 
 // Octo hold list proxy server information
@@ -44,7 +44,7 @@ alive:
 	for {
 		select {
 		case <-sigTerm:
-			log.Println("octo-proxy interrupted")
+			log.Warn().Msg("octo-proxy interrupted")
 
 			octo.Lock()
 			shutdown(octo.Proxies, srv)
@@ -52,15 +52,14 @@ alive:
 
 			break alive
 		case <-sigReload:
-			log.Println("octo-proxy reload trigerred")
+			log.Info().Msg("octo-proxy reload triggered")
 
 			if err := reloadProxy(cPath, octo); err != nil {
-				log.Println(err)
-				log.Println("octo-proxy reload failed")
+				log.Error().Err(err).Msg("octo-proxy reload failed")
 				continue
 			}
 
-			log.Println("octo-proxy reloaded")
+			log.Info().Msg("octo-proxy reloaded")
 		}
 	}
 
@@ -116,7 +115,7 @@ func runMetrics() *metrics.Metrics {
 	m := metrics.New()
 
 	go func() {
-		log.Println("listening metrics server on :9123")
+		log.Info().Str("port", "9123").Msg("starting metrics server")
 		m.Run()
 	}()
 
@@ -124,7 +123,7 @@ func runMetrics() *metrics.Metrics {
 }
 
 func shutdown(proxies map[string]*proxy.Proxy, m *metrics.Metrics) {
-	log.Println("shutdown octo-proxy")
+	log.Info().Msg("shutdown octo-proxy")
 
 	for _, p := range proxies {
 		p.Shutdown()
@@ -132,7 +131,7 @@ func shutdown(proxies map[string]*proxy.Proxy, m *metrics.Metrics) {
 
 	if m != nil {
 		if err := m.Shutdown(context.Background()); err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("shutdown failed")
 		}
 	}
 }

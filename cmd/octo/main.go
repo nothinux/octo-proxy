@@ -3,12 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/runner"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var banner = `         _                           
@@ -28,6 +31,8 @@ Flags:
     Specify listener for running octo-proxy (default: 0.0.0.0:5000)
   -target
     Specify target backend which traffic will be forwarded
+  -debug
+    Enable debug log messages
   -version
     Print octo-proxy version
 
@@ -40,8 +45,27 @@ var (
 
 func main() {
 	if err := runMain(); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("failed to start")
 	}
+}
+
+func setupLogger(debug bool) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
+
+	consoleWriter := zerolog.ConsoleWriter{
+		TimeFormat: time.StampMicro,
+		Out:        os.Stdout,
+	}
+
+	log.Logger = log.Output(consoleWriter)
+
+	level := zerolog.InfoLevel
+	if debug {
+		level = zerolog.DebugLevel
+	}
+
+	zerolog.SetGlobalLevel(level)
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 }
 
 func runMain() error {
@@ -50,6 +74,7 @@ func runMain() error {
 		ver        = flag.Bool("version", false, "Print octo-proxy version")
 		listener   = flag.String("listener", "127.0.0.1:5000", "Specify listener for running octo-proxy")
 		target     = flag.String("target", "", "Specify comma-separated list of targets for running octo-proxy")
+		debug      = flag.Bool("debug", false, "Enable debug messages")
 	)
 
 	flag.Usage = func() {
@@ -58,6 +83,8 @@ func runMain() error {
 	flag.Parse()
 
 	fmt.Fprintf(os.Stdout, showBanner)
+
+	setupLogger(*debug)
 
 	// run with flag
 	if *target != "" {

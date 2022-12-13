@@ -4,12 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	goerrors "errors"
-	"log"
 	"net"
 	"strings"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 type ProxyTLS struct {
@@ -77,7 +77,9 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 					Intermediates: x509.NewCertPool(),
 				}
 
-				log.Println(len(cs.PeerCertificates))
+				log.Debug().
+					Int("n-certificates", len(cs.PeerCertificates)).
+					Msg("verifying peer certificates")
 
 				for _, cert := range cs.PeerCertificates[1:] {
 					opts.Intermediates.AddCert(cert)
