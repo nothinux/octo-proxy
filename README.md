@@ -51,6 +51,7 @@ servers:
   listener:
     host: 0.0.0.0
     port: 8080
+    timeout: 300
     tlsConfig:
       mode: mutual
       caCert: /tmp/ca-cert.pem
@@ -59,6 +60,7 @@ servers:
   targets:
     - host: 127.0.0.1
       port: 80
+      timeout: 300
 
 metrics:
   host: 0.0.0.0
@@ -81,6 +83,7 @@ servers:
   listener:
     host: 0.0.0.0
     port: 8080
+    timeout: 300
     tlsConfig:
       mode: simple
       cert: /tmp/cert.pem
@@ -88,9 +91,11 @@ servers:
   targets:
     - host: 127.0.0.1
       port: 80
+      timeout: 300
   mirror:
     host: 172.16.0.1
     port: 80
+    timeout: 300
 ```
 
 ```

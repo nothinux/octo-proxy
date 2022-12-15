@@ -44,7 +44,11 @@ func New(name string) *Proxy {
 func (p *Proxy) Run(c config.ServerConfig) {
 	l, err := reuseport.Listen("tcp", net.JoinHostPort(c.Listener.Host, c.Listener.Port))
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to listen")
+		log.Fatal().
+			Err(err).
+			Str("host", c.Listener.Host).
+			Str("port", c.Listener.Port).
+			Msg("failed to listen")
 	}
 
 	ts := []string{}
@@ -120,7 +124,12 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 		defer activeConn.Dec()
 		activeConnTotal.Inc()
 
-		srcConn.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Listener.Timeout)))
+		if c.Listener.Timeout > 0 {
+			deadline := time.Now().Add(time.Second * time.Duration(c.Listener.Timeout))
+			if err := srcConn.SetDeadline(deadline); err != nil {
+				log.Error().Err(err).Msg("failed to set src conn deadline")
+			}
+		}
 
 		if err := isTLSConn(srcConn); err != nil {
 			log.Error().Err(err).Msg("connection error")

@@ -24,9 +24,11 @@ servers:
   listener:
     host: 127.0.0.1
     port: 8081
+    timeout: 300
   targets:
     - host: 127.0.0.1
       port: 80
+      timeout: 300
 
 metrics:
   host: 0.0.0.0

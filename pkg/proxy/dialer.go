@@ -50,7 +50,12 @@ func dialTargets(hcs []config.HostConfig) (net.Conn, error) {
 	for _, hc := range hcs {
 		c, err := dialTarget(hc)
 		if err == nil {
-			c.SetDeadline(time.Now().Add(time.Second * time.Duration(hc.Timeout)))
+			if hc.Timeout > 0 {
+				deadline := time.Now().Add(time.Second * time.Duration(hc.Timeout))
+				if err := c.SetDeadline(deadline); err != nil {
+					log.Error().Err(err).Msg("failed to set target conn deadline")
+				}
+			}
 			return c, nil
 		}
 
@@ -85,7 +90,12 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 				Msg("can't dial mirror backend")
 		}
 		if m != nil {
-			m.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Mirror.Timeout)))
+			if c.Mirror.Timeout > 0 {
+				deadline := time.Now().Add(time.Second * time.Duration(c.Mirror.Timeout))
+				if err := m.SetDeadline(deadline); err != nil {
+					log.Error().Err(err).Msg("failed to set mirror conn deadline")
+				}
+			}
 		}
 	}
 

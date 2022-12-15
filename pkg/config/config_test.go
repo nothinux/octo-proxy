@@ -287,13 +287,15 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host: "127.0.0.1",
-							Port: "8080",
+							Host:    "127.0.0.1",
+							Port:    "8080",
+							Timeout: 30,
 						},
 						Targets: []HostConfig{
 							{
-								Host: "127.0.0.1",
-								Port: "80",
+								Host:    "127.0.0.1",
+								Port:    "80",
+								Timeout: 30,
 							},
 						},
 					},
@@ -306,13 +308,13 @@ func TestValidateConfig(t *testing.T) {
 						Listener: HostConfig{
 							Host:    "127.0.0.1",
 							Port:    "8080",
-							Timeout: 300,
+							Timeout: 30,
 						},
 						Targets: []HostConfig{
 							{
 								Host:    "127.0.0.1",
 								Port:    "80",
-								Timeout: 300,
+								Timeout: 30,
 							},
 						},
 					},
@@ -595,104 +597,15 @@ func TestValidateConfig(t *testing.T) {
 			expectedError:  "port in servers.[0].mirror.port is not valid",
 		},
 		{
-			Name: "set timeout on listener",
-			Config: &Config{
-				ServerConfigs: []ServerConfig{
-					{
-						Name: "proxy-1",
-						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: 10,
-						},
-						Targets: []HostConfig{
-							{
-								Host: "127.0.0.1",
-								Port: "80",
-							},
-						},
-					},
-				},
-			},
-			expectedConfig: &Config{
-				ServerConfigs: []ServerConfig{
-					{
-						Name: "proxy-1",
-						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: 10,
-						},
-						Targets: []HostConfig{
-							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: 300,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Name: "set timeout on listener, target and set mirror to default",
-			Config: &Config{
-				ServerConfigs: []ServerConfig{
-					{
-						Name: "proxy-1",
-						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: 10,
-						},
-						Targets: []HostConfig{
-							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: 200,
-							},
-						},
-						Mirror: HostConfig{
-							Host: "127.0.0.1",
-							Port: "9999",
-						},
-					},
-				},
-			},
-			expectedConfig: &Config{
-				ServerConfigs: []ServerConfig{
-					{
-						Name: "proxy-1",
-						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: 10,
-						},
-						Targets: []HostConfig{
-							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: 200,
-							},
-						},
-						Mirror: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "9999",
-							Timeout: 300,
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "valid tlsConfig on listener",
 			Config: &Config{
 				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host: "127.0.0.1",
-							Port: "8080",
+							Host:    "127.0.0.1",
+							Port:    "8080",
+							Timeout: 300,
 							TLSConfig: TLSConfig{
 								Mode:   "mutual",
 								Key:    "/tmp/key.pem",
@@ -702,8 +615,9 @@ func TestValidateConfig(t *testing.T) {
 						},
 						Targets: []HostConfig{
 							{
-								Host: "127.0.0.1",
-								Port: "80",
+								Host:    "127.0.0.1",
+								Port:    "80",
+								Timeout: 300,
 							},
 						},
 					},

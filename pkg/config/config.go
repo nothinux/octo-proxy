@@ -20,6 +20,8 @@ const (
 	smirror
 )
 
+const defaultTimeout = 300
+
 type Config struct {
 	ServerConfigs []ServerConfig `yaml:"servers"`
 	MetricsConfig HostConfig     `yaml:"metrics"`
@@ -113,8 +115,9 @@ func GenerateConfig(listener string, targets []string, metrics string) (*Config,
 			{
 				Name: "default",
 				Listener: HostConfig{
-					Host: l[0],
-					Port: l[1],
+					Host:    l[0],
+					Port:    l[1],
+					Timeout: defaultTimeout,
 				},
 				Targets: []HostConfig{},
 			},
@@ -128,8 +131,9 @@ func GenerateConfig(listener string, targets []string, metrics string) (*Config,
 		}
 
 		hc := HostConfig{
-			Host: t[0],
-			Port: t[1],
+			Host:    t[0],
+			Port:    t[1],
+			Timeout: defaultTimeout,
 		}
 
 		c.ServerConfigs[0].Targets = append(c.ServerConfigs[0].Targets, hc)
@@ -176,7 +180,6 @@ func validateConfig(c *Config) (*Config, error) {
 				return nil, err
 			}
 
-			setTimeout(&c.ServerConfigs[i].Targets[j])
 			setSAN(&c.ServerConfigs[i].Targets[j])
 		}
 
@@ -186,7 +189,6 @@ func validateConfig(c *Config) (*Config, error) {
 				return nil, err
 			}
 
-			setTimeout(mirror)
 			setSAN(mirror)
 		}
 		// set all listener role to server
@@ -194,17 +196,10 @@ func validateConfig(c *Config) (*Config, error) {
 			listener.TLSConfig.Role.Server = true
 		}
 
-		setTimeout(listener)
 		setSAN(listener)
 	}
 
 	return c, nil
-}
-
-func setTimeout(c *HostConfig) {
-	if c.Timeout == 0 {
-		c.Timeout = 300
-	}
 }
 
 func setSAN(c *HostConfig) {
