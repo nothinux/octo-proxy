@@ -102,7 +102,7 @@ func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {
 
 	pool := x509.NewCertPool()
 	if ok := pool.AppendCertsFromPEM(cacert); !ok {
-		return nil, errors.New("tlsConfig", "can't add CA to pool "+err.Error())
+		return nil, errors.New("tlsConfig", "can't add CA to pool")
 	}
 
 	return pool, nil
