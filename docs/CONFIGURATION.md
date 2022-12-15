@@ -42,4 +42,4 @@
 ## Metrics
 | Field    | Type          | Description                     |                                                 | Required |
 | -------- | ------------- | ------------------------------- | ----------------------------------------------- | -------- |
-| metrics  | [HostConfig]  | Configures the host and port for the metrics server, optionally with TLS settings | no       |
+| metrics  | [HostConfig]  | Configures the host and port for the metrics server, currently doesn't support tls settings | no       |

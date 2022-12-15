@@ -12,7 +12,6 @@ import (
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
-	"github.com/nothinux/octo-proxy/pkg/tlsconn"
 	"github.com/rs/zerolog/log"
 )
 
@@ -62,7 +61,7 @@ func (p *Proxy) Run(c config.ServerConfig) {
 
 	tc := c.Listener.TLSConfig
 	if tc.IsSimple() || tc.IsMutual() {
-		tlsConf, err := tlsconn.GetTLSConfig(tc)
+		tlsConf, err := getTLSConfig(tc)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to get TLS config")
 		}

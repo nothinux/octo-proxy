@@ -43,7 +43,7 @@ metrics:
 octo -config config.yaml
 ```
 
-#### Run Octo as TLS Proxy w/ mTLS and TLS enabled metrics server
+#### Run Octo as TLS Proxy w/ mTLS
 ``` yaml
 // config.yaml
 servers:
@@ -63,10 +63,6 @@ servers:
 metrics:
   host: 0.0.0.0
   port: 9123
-  tlsConfig:
-    mode: simple
-    cert: /tmp/cert.pem
-    key: /tmp/cert-key.pem
 ```
 
 ```

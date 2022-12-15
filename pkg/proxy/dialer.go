@@ -11,7 +11,7 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/errors"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
-	"github.com/nothinux/octo-proxy/pkg/tlsconn"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,7 +30,7 @@ func dialTarget(hc config.HostConfig) (net.Conn, error) {
 	d := newDial()
 
 	if hc.IsSimple() || hc.IsMutual() {
-		tlsConf, err := tlsconn.GetTLSConfig(hc.TLSConfig)
+		tlsConf, err := getTLSConfig(hc.TLSConfig)
 		if err != nil {
 			return nil, err
 		}

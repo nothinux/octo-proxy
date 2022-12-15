@@ -1,4 +1,5 @@
-package tlsconn
+// TODO: separate this usecase to new package
+package proxy
 
 import (
 	"crypto/tls"
@@ -23,8 +24,8 @@ func newTLS() *ProxyTLS {
 	}
 }
 
-// GetTLSConfig returns a TLS Config for the simple and mutual tls
-func GetTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
+// getTLSConfig returns a TLS Config for the simple and mutual tls
+func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	var caPool *x509.CertPool
 	var pair tls.Certificate
 	var err error
@@ -102,7 +103,7 @@ func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {
 
 	pool := x509.NewCertPool()
 	if ok := pool.AppendCertsFromPEM(cacert); !ok {
-		return nil, errors.New("tlsConfig", "can't add CA to pool "+err.Error())
+		return nil, errors.New("tlsConfig", "can't add CA to pool")
 	}
 
 	return pool, nil
