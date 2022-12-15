@@ -74,6 +74,7 @@ func runMain() error {
 		ver        = flag.Bool("version", false, "Print octo-proxy version")
 		listener   = flag.String("listener", "127.0.0.1:5000", "Specify listener for running octo-proxy")
 		target     = flag.String("target", "", "Specify comma-separated list of targets for running octo-proxy")
+		metrics    = flag.String("metrics", "0.0.0.0:9123", "Address and port to run the metrics server on")
 		debug      = flag.Bool("debug", false, "Enable debug messages")
 	)
 
@@ -90,7 +91,7 @@ func runMain() error {
 	if *target != "" {
 		targets := strings.Split(*target, ",")
 
-		c, err := config.GenerateConfig(*listener, targets)
+		c, err := config.GenerateConfig(*listener, targets, *metrics)
 		if err != nil {
 			return err
 		}

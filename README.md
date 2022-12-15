@@ -20,7 +20,7 @@ octo-proxy -listener 127.0.0.1:8080 -target 127.0.0.1:80
 
 Run with `-debug` to get a more verbose log output.
 
-#### Run Octo as TCP Proxy
+#### Run Octo as TCP Proxy with metrics on port 9123
 ``` yaml
 // config.yaml
 servers:
@@ -33,13 +33,17 @@ servers:
       port: 80
     - host: 127.0.0.1
       port: 81
+
+metrics:
+  host: 0.0.0.0
+  port: 9123
 ```
 
 ```
 octo -config config.yaml
 ```
 
-#### Run Octo as TLS Proxy w/ mTLS
+#### Run Octo as TLS Proxy w/ mTLS and TLS enabled metrics server
 ``` yaml
 // config.yaml
 servers:
@@ -55,6 +59,14 @@ servers:
   targets:
     - host: 127.0.0.1
       port: 80
+
+metrics:
+  host: 0.0.0.0
+  port: 9123
+  tlsConfig:
+    mode: simple
+    cert: /tmp/cert.pem
+    key: /tmp/cert-key.pem
 ```
 
 ```
@@ -93,7 +105,7 @@ After changing configuration or certificates, send signal `SIGUSR1` or `SIGUSR2`
 Octo-proxy use `SO_REUSEPORT` to binding the listener, so every reload triggered octo-proxy will create new listener and drop old listener after new listener created, by using this approach octo-proxy can minimize dropped connection when reload triggered.
 
 ### Monitoring
-Metrics running at `http://127.0.0.1:9123/metrics`
+Metrics are configured through the `metrics` section in the config file and are served under the `/metrics` path of the configured host and port.
 
 ### LICENSE
 [LICENSE](https://github.com/nothinux/octo-proxy/blob/main/LICENSE.md)

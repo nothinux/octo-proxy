@@ -7,7 +7,6 @@
 
 
 ## Server
-
 | Field    | Type             | Description   | Required |
 | -------- | ---------------- | ------------- | -------- |
 | name     | `<string>`       | Name of proxy | no       |
@@ -32,7 +31,6 @@
 | cert     | `<string>`    | Location where Certificates is stored, use this option if want to enable tls in `listener`, in `mirror` and `target` this certificate will be used to prove identity                  | yes      |
 | key      | `<string>`    | Location where private key is stored, use this option if want to enable tls in `listener`, in `mirror` and `target` this certificate will be used to prove identity                  | yes      |
 
-
 ## tlsMode
 | Field     | Type          | Description                     |
 | --------- | ------------- | ------------------------------- 
@@ -40,3 +38,8 @@
 | `mutual`  | `<string>`    | Use this option to use mutual TLS (mTLS). With this mode, server and client will verify each other. Required option `mode: mutual`, `caCert`, `cert`, and `key`. |
 
 > Currently, in mutual mode octo-proxy will only verify the ip address of it's client and try to match it with ip sans in certificate. In the future we will adding more alternative names verification.
+
+## Metrics
+| Field    | Type          | Description                     |                                                 | Required |
+| -------- | ------------- | ------------------------------- | ----------------------------------------------- | -------- |
+| metrics  | [HostConfig]  | Configures the host and port for the metrics server, optionally with TLS settings | no       |

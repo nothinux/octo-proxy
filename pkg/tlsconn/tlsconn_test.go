@@ -1,4 +1,4 @@
-package proxy
+package tlsconn
 
 import (
 	"crypto/tls"

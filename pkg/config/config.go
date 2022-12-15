@@ -22,6 +22,7 @@ const (
 
 type Config struct {
 	ServerConfigs []ServerConfig `yaml:"servers"`
+	MetricsConfig HostConfig     `yaml:"metrics"`
 }
 
 type ServerConfig struct {
@@ -100,7 +101,7 @@ func readConfig(r io.Reader) (*Config, error) {
 	return config, nil
 }
 
-func GenerateConfig(listener string, targets []string) (*Config, error) {
+func GenerateConfig(listener string, targets []string, metrics string) (*Config, error) {
 	l := strings.Split(listener, ":")
 
 	if len(l) != 2 {
@@ -132,6 +133,18 @@ func GenerateConfig(listener string, targets []string) (*Config, error) {
 		}
 
 		c.ServerConfigs[0].Targets = append(c.ServerConfigs[0].Targets, hc)
+	}
+
+	if len(metrics) > 0 {
+		t := strings.Split(metrics, ":")
+		if len(t) != 2 {
+			return nil, errors.New("error", "metrics server address must be specified in format host:port")
+		}
+
+		c.MetricsConfig = HostConfig{
+			Host: t[0],
+			Port: t[1],
+		}
 	}
 
 	return validateConfig(c)

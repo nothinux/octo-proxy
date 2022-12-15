@@ -1,9 +1,7 @@
 package config
 
 import (
-	"io"
 	"net"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,24 +52,4 @@ func portIsValid(p string) bool {
 	}
 
 	return valid
-}
-
-func readContent(path string) ([]byte, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-
-	return readContentFile(f)
-}
-
-func readContentFile(r io.Reader) ([]byte, error) {
-	b, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
 }

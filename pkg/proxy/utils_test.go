@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
+	"github.com/nothinux/octo-proxy/pkg/tlsconn"
 )
 
 func SendData(hc config.HostConfig, message []byte, readResponse bool) error {
@@ -36,7 +37,7 @@ func SendData(hc config.HostConfig, message []byte, readResponse bool) error {
 }
 
 func RunTestTLSServer(wg *sync.WaitGroup, c config.TLSConfig, result chan []byte) string {
-	tlsConfig, err := getTLSConfig(c)
+	tlsConfig, err := tlsconn.GetTLSConfig(c)
 	if err != nil {
 		log.Fatal(err)
 	}

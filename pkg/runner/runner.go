@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 	"syscall"
 
@@ -23,14 +24,26 @@ type Octo struct {
 type Server config.Config
 
 func Run(c *config.Config, cPath string) error {
-	ss := &Server{c.ServerConfigs}
+	ss := &Server{
+		ServerConfigs: c.ServerConfigs,
+		MetricsConfig: c.MetricsConfig,
+	}
+
 	proxies := ss.runProxy()
 
 	octo := &Octo{
 		Proxies: proxies,
 	}
 
-	srv := runMetrics()
+	var metricsServer *metrics.Metrics
+
+	if !reflect.DeepEqual(c.MetricsConfig, config.HostConfig{}) {
+		var err error
+		metricsServer, err = runMetrics(c.MetricsConfig)
+		if err != nil {
+			return err
+		}
+	}
 
 	sigTerm := make(chan os.Signal, 1)
 	sigReload := make(chan os.Signal, 1)
@@ -47,7 +60,7 @@ alive:
 			log.Warn().Msg("octo-proxy interrupted")
 
 			octo.Lock()
-			shutdown(octo.Proxies, srv)
+			shutdown(octo.Proxies, metricsServer)
 			octo.Unlock()
 
 			break alive
@@ -72,7 +85,11 @@ func reloadProxy(cPath string, octo *Octo) error {
 		return err
 	}
 
-	ss := &Server{c.ServerConfigs}
+	ss := &Server{
+		ServerConfigs: c.ServerConfigs,
+		MetricsConfig: c.MetricsConfig,
+	}
+
 	proxies := ss.runProxy()
 
 	octo.Lock()
@@ -111,15 +128,21 @@ func (s *Server) runProxy() map[string]*proxy.Proxy {
 	return proxies
 }
 
-func runMetrics() *metrics.Metrics {
-	m := metrics.New()
+func runMetrics(c config.HostConfig) (*metrics.Metrics, error) {
+	m, err := metrics.New(c)
+	if err != nil {
+		return nil, err
+	}
 
 	go func() {
-		log.Info().Str("port", "9123").Msg("starting metrics server")
+		log.Info().
+			Str("host", c.Host).
+			Str("port", c.Port).
+			Msg("starting metrics server")
 		m.Run()
 	}()
 
-	return m
+	return m, nil
 }
 
 func shutdown(proxies map[string]*proxy.Proxy, m *metrics.Metrics) {
