@@ -1,4 +1,4 @@
-package tlsconn
+package proxy
 
 import (
 	"crypto/tls"
@@ -43,7 +43,6 @@ func TestGetCACertPool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			_, err := getCACertPool(tt.Config)
-			t.Log(err)
 			if err != tt.wantError {
 				if !strings.Contains(err.Error(), tt.wantError.Error()) {
 					t.Fatalf("got %v, want %v", err, tt.wantError)
