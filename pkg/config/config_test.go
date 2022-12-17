@@ -1089,7 +1089,7 @@ func TestValidateConfig(t *testing.T) {
 			expectedError:  "metrics.port not specified",
 		},
 		{
-			Name: "check if metrics configuration is valid",
+			Name: "check if port in metrics is same with port that defined in listener",
 			Config: &Config{
 				ServerConfigs: []ServerConfig{
 					{
@@ -1109,6 +1109,32 @@ func TestValidateConfig(t *testing.T) {
 				MetricsConfig: HostConfig{
 					Host: "127.0.0.1",
 					Port: "8080",
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "can't bind to port that already used by listener",
+		},
+		{
+			Name: "check if metrics configuration is valid",
+			Config: &Config{
+				ServerConfigs: []ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Targets: []HostConfig{
+							{
+								Host: "127.0.0.1",
+								Port: "80",
+							},
+						},
+					},
+				},
+				MetricsConfig: HostConfig{
+					Host: "127.0.0.1",
+					Port: "9123",
 				},
 			},
 			expectedConfig: &Config{
@@ -1131,7 +1157,7 @@ func TestValidateConfig(t *testing.T) {
 				},
 				MetricsConfig: HostConfig{
 					Host: "127.0.0.1",
-					Port: "8080",
+					Port: "9123",
 				},
 			},
 		},

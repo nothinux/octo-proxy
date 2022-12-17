@@ -216,6 +216,12 @@ func validateConfig(c *Config) (*Config, error) {
 			// TODO: handle error in errorcheck
 			return nil, errors.New("metrics", strings.TrimLeft(err.Error(), "[server] host in servers.[0]."))
 		}
+
+		for _, sc := range c.ServerConfigs {
+			if c.MetricsConfig.Port == sc.Listener.Port {
+				return nil, errors.New("metrics", "can't bind to port that already used by listener")
+			}
+		}
 	}
 
 	return c, nil
