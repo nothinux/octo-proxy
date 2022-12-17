@@ -20,6 +20,7 @@ const (
 	slistener hostConfigType = iota
 	starget
 	smirror
+	smetrics
 )
 
 type Config struct {
@@ -71,7 +72,7 @@ func (t TLSConfig) IsSimple() bool {
 }
 
 func (h hostConfigType) String() string {
-	return [...]string{"listener", "target", "mirror"}[h]
+	return [...]string{"listener", "target", "mirror", "metrics"}[h]
 }
 
 func New(configPath string) (*Config, error) {
@@ -208,6 +209,13 @@ func validateConfig(c *Config) (*Config, error) {
 		}
 
 		setSAN(listener)
+	}
+
+	if !reflect.DeepEqual(HostConfig{}, c.MetricsConfig) {
+		if err := errorCheck(0, smetrics, &c.MetricsConfig); err != nil {
+			// TODO: handle error in errorcheck
+			return nil, errors.New("metrics", strings.TrimLeft(err.Error(), "[server] host in servers.[0]."))
+		}
 	}
 
 	return c, nil
