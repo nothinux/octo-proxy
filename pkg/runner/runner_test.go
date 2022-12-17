@@ -83,6 +83,37 @@ func TestRunningRunner(t *testing.T) {
 
 }
 
+func TestRunMetrics(t *testing.T) {
+	tests := []struct {
+		Name   string
+		Config config.HostConfig
+	}{
+		{
+			Name: "Test metrics without port",
+			Config: config.HostConfig{
+				Host: "127.0.0.1",
+			},
+		},
+		{
+			Name: "Test metrics",
+			Config: config.HostConfig{
+				Host: "127.0.0.1",
+				Port: "9125",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		m, err := runMetrics(tt.Config)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(1 * time.Second)
+		shutdown(nil, m)
+	}
+}
+
 func SendData(address string, message []byte) error {
 	d, err := net.DialTimeout("tcp", address, 3*time.Second)
 	if err != nil {

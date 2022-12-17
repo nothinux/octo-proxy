@@ -129,10 +129,7 @@ func (s *Server) runProxy() map[string]*proxy.Proxy {
 }
 
 func runMetrics(c config.HostConfig) (*metrics.Metrics, error) {
-	m, err := metrics.New(c)
-	if err != nil {
-		return nil, err
-	}
+	m := metrics.New(c)
 
 	go func() {
 		log.Info().
