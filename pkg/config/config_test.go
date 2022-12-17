@@ -1038,6 +1038,103 @@ func TestValidateConfig(t *testing.T) {
 			expectedConfig: nil,
 			expectedError:  "ignore cacert, cert or key in servers.[0].target because tlsConfig.mode is not set",
 		},
+		{
+			Name: "check if host in metrics not specified",
+			Config: &Config{
+				ServerConfigs: []ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Targets: []HostConfig{
+							{
+								Host: "127.0.0.1",
+								Port: "80",
+							},
+						},
+					},
+				},
+				MetricsConfig: HostConfig{
+					Port: "8080",
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "metrics.host not specified",
+		},
+		{
+			Name: "check if port in metrics not specified",
+			Config: &Config{
+				ServerConfigs: []ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Targets: []HostConfig{
+							{
+								Host: "127.0.0.1",
+								Port: "80",
+							},
+						},
+					},
+				},
+				MetricsConfig: HostConfig{
+					Host: "127.0.0.1",
+				},
+			},
+			expectedConfig: nil,
+			expectedError:  "metrics.port not specified",
+		},
+		{
+			Name: "check if metrics configuration is valid",
+			Config: &Config{
+				ServerConfigs: []ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host: "127.0.0.1",
+							Port: "8080",
+						},
+						Targets: []HostConfig{
+							{
+								Host: "127.0.0.1",
+								Port: "80",
+							},
+						},
+					},
+				},
+				MetricsConfig: HostConfig{
+					Host: "127.0.0.1",
+					Port: "8080",
+				},
+			},
+			expectedConfig: &Config{
+				ServerConfigs: []ServerConfig{
+					{
+						Name: "proxy-1",
+						Listener: HostConfig{
+							Host:            "127.0.0.1",
+							Port:            "8080",
+							TimeoutDuration: 300 * time.Second,
+						},
+						Targets: []HostConfig{
+							{
+								Host:            "127.0.0.1",
+								Port:            "80",
+								TimeoutDuration: 300 * time.Second,
+							},
+						},
+					},
+				},
+				MetricsConfig: HostConfig{
+					Host: "127.0.0.1",
+					Port: "8080",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -31,6 +31,8 @@ Flags:
     Specify listener for running octo-proxy (default: 0.0.0.0:5000)
   -target
     Specify target backend which traffic will be forwarded
+  -metrics
+    Specify address and port to run the metrics server
   -debug
     Enable debug log messages
   -version
