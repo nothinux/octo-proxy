@@ -19,7 +19,7 @@
 | --------- | ------------- | ------------------------------- | -------- |
 | host      | `<string>`    | On `listener`, this is host where listener will be listen, and on `target` and `mirror` this is host of backend where request will be forwarded | yes      |
 | port      | `<string>`    | On `listener`, this is port where listener will be bind, and on `target` and `mirror` this is port of backend where request will be forwarded | yes      |
-| timeout   | `<string>`    | set timeout (in second) or deadline for every connection, default 300 seconds | no      |
+| timeout   | `<string>`    | set timeout (in second) or deadline for every connection, default 300 seconds. A value of 0 will disable deadlines on connections | no      |
 | tlsConfig | [`tlsConfig`](#tlsconfig)   | set tls configuration if host use tls | no      |
 
 

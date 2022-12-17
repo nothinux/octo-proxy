@@ -119,7 +119,12 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 		defer activeConn.Dec()
 		activeConnTotal.Inc()
 
-		srcConn.SetDeadline(time.Now().Add(time.Second * time.Duration(c.Listener.Timeout)))
+		t := c.Listener.TimeoutDuration
+		if t > 0 {
+			if err := srcConn.SetDeadline(time.Now().Add(t)); err != nil {
+				log.Error().Err(err).Msg("Failed to set src conn deadline")
+			}
+		}
 
 		if err := isTLSConn(srcConn); err != nil {
 			log.Error().Err(err).Msg("connection error")

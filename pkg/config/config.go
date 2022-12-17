@@ -5,7 +5,9 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/errors"
 
@@ -33,10 +35,11 @@ type ServerConfig struct {
 }
 
 type HostConfig struct {
-	Host      string `yaml:"host"`
-	Port      string `yaml:"port"`
-	Timeout   int    `yaml:"timeout"`
-	TLSConfig `yaml:"tlsConfig"`
+	Host            string `yaml:"host"`
+	Port            string `yaml:"port"`
+	Timeout         string `yaml:"timeout"`
+	TimeoutDuration time.Duration
+	TLSConfig       `yaml:"tlsConfig"`
 }
 
 type TLSConfig struct {
@@ -176,7 +179,10 @@ func validateConfig(c *Config) (*Config, error) {
 				return nil, err
 			}
 
-			setTimeout(&c.ServerConfigs[i].Targets[j])
+			if err := setTimeout(&c.ServerConfigs[i].Targets[j]); err != nil {
+				return nil, errors.New("server", fmt.Sprintf("failed to parse timeout servers.[%d].targets[%d]: %v", i, j, err))
+			}
+
 			setSAN(&c.ServerConfigs[i].Targets[j])
 		}
 
@@ -186,7 +192,10 @@ func validateConfig(c *Config) (*Config, error) {
 				return nil, err
 			}
 
-			setTimeout(mirror)
+			if err := setTimeout(mirror); err != nil {
+				return nil, errors.New("server", fmt.Sprintf("failed to parse timeout servers.[%d].mirror: %v", i, err))
+			}
+
 			setSAN(mirror)
 		}
 		// set all listener role to server
@@ -194,17 +203,30 @@ func validateConfig(c *Config) (*Config, error) {
 			listener.TLSConfig.Role.Server = true
 		}
 
-		setTimeout(listener)
+		if err := setTimeout(listener); err != nil {
+			return nil, errors.New("server", fmt.Sprintf("failed to parse timeout servers.[%d]: %v", i, err))
+		}
+
 		setSAN(listener)
 	}
 
 	return c, nil
 }
 
-func setTimeout(c *HostConfig) {
-	if c.Timeout == 0 {
-		c.Timeout = 300
+func setTimeout(c *HostConfig) error {
+	seconds := 300
+
+	if c.Timeout != "" {
+		var err error
+		seconds, err = strconv.Atoi(c.Timeout)
+		if err != nil {
+			return err
+		}
 	}
+
+	c.TimeoutDuration = time.Duration(seconds) * time.Second
+
+	return nil
 }
 
 func setSAN(c *HostConfig) {

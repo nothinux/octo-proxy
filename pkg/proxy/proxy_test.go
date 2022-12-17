@@ -109,9 +109,9 @@ func TestProxyWithMirror(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.ServerConfigs[0].Mirror = config.HostConfig{
-		Host:    strings.Split(mirror, ":")[0],
-		Port:    strings.Split(mirror, ":")[1],
-		Timeout: 10,
+		Host:            strings.Split(mirror, ":")[0],
+		Port:            strings.Split(mirror, ":")[1],
+		TimeoutDuration: 10 * time.Second,
 	}
 
 	p := New("test-proxy")
@@ -666,7 +666,7 @@ func TestProxyWithSlowTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	// set timeout for target
-	cfg.ServerConfigs[0].Targets[0].Timeout = 3
+	cfg.ServerConfigs[0].Targets[0].TimeoutDuration = 3 * time.Second
 
 	p := New("test-proxy")
 	go func() {
