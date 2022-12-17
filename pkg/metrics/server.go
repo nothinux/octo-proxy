@@ -13,7 +13,7 @@ type Metrics struct {
 	*http.Server
 }
 
-func New(c config.HostConfig) (*Metrics, error) {
+func New(c config.HostConfig) *Metrics {
 	r := http.NewServeMux()
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -24,7 +24,7 @@ func New(c config.HostConfig) (*Metrics, error) {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	return &Metrics{srv}, nil
+	return &Metrics{srv}
 }
 
 func (m *Metrics) Run() error {
