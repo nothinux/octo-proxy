@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"crypto/tls"
-	goerrors "errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,14 +11,18 @@ import (
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	activeConn      = metrics.AddGauge("octo_conn_active", "current active connection")
-	activeConnTotal = metrics.AddCounter("octo_conn_active_total", "total active connection")
-	connErrTotal    = metrics.AddCounter("octo_conn_error_total", "total connection error. include tcp and tls")
-	tlsConnErrTotal = metrics.AddCounter("octo_conn_tls_error_total", "total tls connection error")
+	downstreamConnActive = metrics.AddGaugeVec("octo_downstream_conn_active", "current active connection in downstream")
+	downstreamConnTotal  = metrics.AddCounterVec("octo_downstream_conn_total", "total downstream connection")
+	downstreamConnErr    = metrics.AddCounterVec("octo_downstream_conn_error", "total downsream connection error. include tcp and tls")
+
+	upstreamConnActive = metrics.AddGaugeVecMultiLabels("octo_upstream_conn_active", "current active connection in upstreamn")
+	upstreamConnTotal  = metrics.AddCounterVecMultiLabels("octo_upstream_conn_total", "total upstream connection")
+	upstreamConnErr    = metrics.AddCounterVecMultiLabels("octo_upstream_conn_error", "total upstream connection error. include tcp and tls")
 )
 
 // Proxy hold running proxy data
@@ -84,20 +87,6 @@ func (p *Proxy) Run(c config.ServerConfig) {
 	p.handleConn(c)
 }
 
-func isTLSConn(nc net.Conn) error {
-	if _, ok := nc.(*tls.Conn); ok {
-		if err := nc.(*tls.Conn).Handshake(); err != nil {
-			return err
-		}
-
-		if !nc.(*tls.Conn).ConnectionState().HandshakeComplete {
-			return goerrors.New("handshake failed")
-		}
-	}
-
-	return nil
-}
-
 // handleConn accept incoming connection and forward it
 func (p *Proxy) handleConn(c config.ServerConfig) {
 	for {
@@ -111,13 +100,12 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 					Err(err).
 					Str("name", c.Name).
 					Msg("connection error")
-				connErrTotal.Inc()
+				downstreamConnErr.With(prometheus.Labels{"name": p.Name}).Inc()
 			}
 		}
 
-		activeConn.Inc()
-		defer activeConn.Dec()
-		activeConnTotal.Inc()
+		downstreamConnActive.With(prometheus.Labels{"name": p.Name}).Inc()
+		downstreamConnTotal.With(prometheus.Labels{"name": p.Name}).Inc()
 
 		t := c.Listener.TimeoutDuration
 		if t > 0 {
@@ -129,7 +117,7 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 		if err := isTLSConn(srcConn); err != nil {
 			log.Error().Err(err).Msg("connection error")
 			srcConn.Close()
-			tlsConnErrTotal.Inc()
+			downstreamConnErr.With(prometheus.Labels{"name": p.Name}).Inc()
 			continue
 		}
 
@@ -137,13 +125,14 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 		go func() {
 			p.forwardConn(c, srcConn)
 			p.Wg.Done()
+			downstreamConnActive.With(prometheus.Labels{"name": p.Name}).Dec()
 		}()
 	}
 }
 
 // forwardConn forward source connection to rarget or destination
 func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
-	targetConn, targetWr, err := getTargets(c)
+	targetConn, targetWr, tConf, err := getTargets(c)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -155,6 +144,7 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 
 	defer srcConn.Close()
 	defer closeConn(targetConn)
+	defer upstreamConnActive.With(prometheus.Labels{"host": tConf.Host, "port": tConf.Port}).Dec()
 
 	p.Wg.Add(1)
 	go func() {
@@ -162,13 +152,16 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 		defer closeConn(targetConn)
 
 		_, err := io.Copy(srcConn, targetConn[0])
-		errCopy(err)
+		errCopy(err, tConf)
 
 		p.Wg.Done()
 	}()
 
+	upstreamConnActive.With(prometheus.Labels{"host": tConf.Host, "port": tConf.Port}).Inc()
+	upstreamConnTotal.With(prometheus.Labels{"host": tConf.Host, "port": tConf.Port}).Inc()
+
 	_, err = io.Copy(targetWr, srcConn)
-	errCopy(err)
+	errCopy(err, tConf)
 }
 
 func (p *Proxy) Shutdown() {
