@@ -5,16 +5,30 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-func AddGauge(name, help string) prometheus.Gauge {
-	return promauto.NewGauge(prometheus.GaugeOpts{
+func AddGaugeVec(name, help string) *prometheus.GaugeVec {
+	return promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: name,
 		Help: help,
-	})
+	}, []string{"name"})
 }
 
-func AddCounter(name, help string) prometheus.Counter {
-	return promauto.NewCounter(prometheus.CounterOpts{
+func AddGaugeVecMultiLabels(name, help string) *prometheus.GaugeVec {
+	return promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: name,
 		Help: help,
-	})
+	}, []string{"host", "port"})
+}
+
+func AddCounterVec(name, help string) *prometheus.CounterVec {
+	return promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: name,
+		Help: help,
+	}, []string{"name"})
+}
+
+func AddCounterVecMultiLabels(name, help string) *prometheus.CounterVec {
+	return promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: name,
+		Help: help,
+	}, []string{"host", "port"})
 }

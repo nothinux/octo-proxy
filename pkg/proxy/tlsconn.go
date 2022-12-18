@@ -4,6 +4,8 @@ package proxy
 import (
 	"crypto/tls"
 	"crypto/x509"
+	goerrors "errors"
+	"net"
 	"os"
 	"strings"
 
@@ -93,6 +95,20 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	}
 
 	return ptls, nil
+}
+
+func isTLSConn(nc net.Conn) error {
+	if _, ok := nc.(*tls.Conn); ok {
+		if err := nc.(*tls.Conn).Handshake(); err != nil {
+			return err
+		}
+
+		if !nc.(*tls.Conn).ConnectionState().HandshakeComplete {
+			return goerrors.New("handshake failed")
+		}
+	}
+
+	return nil
 }
 
 func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {

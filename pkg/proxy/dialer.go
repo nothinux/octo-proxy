@@ -11,13 +11,14 @@ import (
 	"github.com/nothinux/octo-proxy/pkg/config"
 	"github.com/nothinux/octo-proxy/pkg/errors"
 	"github.com/nothinux/octo-proxy/pkg/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	targetErr = metrics.AddCounter("octo_target_error_total", "total target or backend error")
-	mirrorErr = metrics.AddCounter("octo_mirror_error_total", "total mirror error")
+	upstreamDialErr = metrics.AddCounterVecMultiLabels("octo_upstream_dial_error", "total dial error when calling an upstream")
+	mirrorDialErr   = metrics.AddCounterVecMultiLabels("octo_mirror_dial_error", "total dial error when calling an mirror upstream")
 )
 
 func newDial() *net.Dialer {
@@ -46,8 +47,11 @@ func dialTarget(hc config.HostConfig) (net.Conn, error) {
 	return d.Dial("tcp", net.JoinHostPort(hc.Host, hc.Port))
 }
 
-func dialTargets(hcs []config.HostConfig) (net.Conn, error) {
+func dialTargets(hcs []config.HostConfig) (net.Conn, config.HostConfig, error) {
+	tConf := &config.HostConfig{}
+
 	for _, hc := range hcs {
+		*tConf = hc
 		c, err := dialTarget(hc)
 		if err == nil {
 			t := hc.TimeoutDuration
@@ -56,25 +60,24 @@ func dialTargets(hcs []config.HostConfig) (net.Conn, error) {
 					log.Error().Err(err).Msg("Failed to set deadline")
 				}
 			}
-			return c, nil
+			return c, *tConf, nil
 		}
-
-		targetErr.Inc()
 	}
 
-	return nil, errors.New("targets", "no backends could be reached")
+	return nil, *tConf, errors.New("targets", "no backends could be reached")
 }
 
-func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
+func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, config.HostConfig, error) {
 	targets := c.Targets
 
 	rand.Shuffle(len(targets), func(i, j int) {
 		targets[i], targets[j] = targets[j], targets[i]
 	})
 
-	t, err := dialTargets(targets)
+	t, tc, err := dialTargets(targets)
 	if err != nil {
-		return nil, nil, errors.New(c.Name, err.Error())
+		upstreamDialErr.With(prometheus.Labels{"host": tc.Host, "port": tc.Port}).Inc()
+		return nil, nil, config.HostConfig{}, errors.New(c.Name, err.Error())
 	}
 
 	var m net.Conn
@@ -82,7 +85,7 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 	if !reflect.DeepEqual(config.HostConfig{}, c.Mirror) {
 		m, err = dialTarget(c.Mirror)
 		if err != nil {
-			mirrorErr.Inc()
+			mirrorDialErr.With(prometheus.Labels{"host": c.Mirror.Host, "port": c.Mirror.Port}).Inc()
 			log.Warn().
 				Err(err).
 				Str("host", c.Mirror.Host).
@@ -100,8 +103,8 @@ func getTargets(c config.ServerConfig) ([]net.Conn, io.Writer, error) {
 	}
 
 	if m == nil {
-		return []net.Conn{t}, io.MultiWriter(t), nil
+		return []net.Conn{t}, io.MultiWriter(t), tc, nil
 	}
 
-	return []net.Conn{t, m}, io.MultiWriter(t, m), nil
+	return []net.Conn{t, m}, io.MultiWriter(t, m), tc, nil
 }

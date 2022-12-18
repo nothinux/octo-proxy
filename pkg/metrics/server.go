@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -15,6 +16,8 @@ type Metrics struct {
 
 func New(c config.HostConfig) *Metrics {
 	r := http.NewServeMux()
+	prometheus.Unregister(prometheus.NewGoCollector())
+
 	r.Handle("/metrics", promhttp.Handler())
 
 	srv := &http.Server{
