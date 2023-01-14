@@ -716,3 +716,70 @@ func TestProxyWithSlowTarget(t *testing.T) {
 	// shutdown octo-proxy
 	p.Shutdown()
 }
+
+func TestProxyWithZeroTimeout(t *testing.T) {
+	var wg sync.WaitGroup
+	// start target server
+	backend := testhelper.RunTestServerSlowMode(&wg, 1)
+
+	// start octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", []string{backend}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// set timeout for target
+	cfg.ServerConfigs[0].Targets[0].TimeoutDuration = 0 * time.Second
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	wg.Add(1)
+	go func() {
+		time.Sleep(2 * time.Second)
+		p.Shutdown()
+		wg.Done()
+	}()
+
+	t.Run("test read from server", func(t *testing.T) {
+		hc := config.HostConfig{
+			Host: "127.0.0.1",
+			Port: "9000",
+		}
+		d, err := dialTarget(hc)
+		if err != nil {
+			t.Error(err)
+		}
+
+		buf := make([]byte, 26)
+		b := make([]byte, 1)
+
+		for i := 0; i < 26; i++ {
+			n, err := d.Read(b)
+			if err != nil {
+				if err != io.EOF {
+					log.Println(err)
+				}
+
+				if errors.Is(err, syscall.EPIPE) {
+					log.Println(err)
+					break
+				}
+			}
+
+			log.Println(string(b[:n]))
+
+			copy(buf[i:], b[:n])
+		}
+
+		r := bytes.Compare(buf, []byte("lorem ipsum dolor sit amet"))
+		if r != -1 {
+			t.Fatalf("the response length must match")
+		}
+	})
+
+	wg.Wait()
+}
