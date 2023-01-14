@@ -30,7 +30,7 @@ var (
 type Proxy struct {
 	Name     string
 	Listener net.Listener
-	shutdown context.CancelFunc
+	Quit     context.CancelFunc
 	Wg       sync.WaitGroup
 	sync.Mutex
 }
@@ -45,12 +45,12 @@ func New(name string) *Proxy {
 // Run initialize tcp or tls listener
 func (p *Proxy) Run(c config.ServerConfig) {
 	p.Lock()
-	if p.shutdown != nil {
-		p.shutdown()
+	if p.Quit != nil {
+		p.Quit()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p.shutdown = cancel
+	p.Quit = cancel
 	p.Unlock()
 
 	l, err := reuseport.Listen("tcp", net.JoinHostPort(c.Listener.Host, c.Listener.Port))
@@ -183,9 +183,9 @@ func (p *Proxy) forwardConn(ctx context.Context, c config.ServerConfig, srcConn 
 
 func (p *Proxy) Shutdown() {
 	p.Lock()
-	if p.shutdown != nil {
-		p.shutdown()
-		p.shutdown = nil
+	if p.Quit != nil {
+		p.Quit()
+		p.Quit = nil
 	}
 	if p.Listener != nil {
 		p.Listener.Close()
