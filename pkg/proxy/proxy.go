@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -29,7 +30,7 @@ var (
 type Proxy struct {
 	Name     string
 	Listener net.Listener
-	Quit     chan interface{}
+	shutdown context.CancelFunc
 	Wg       sync.WaitGroup
 	sync.Mutex
 }
@@ -38,12 +39,20 @@ type Proxy struct {
 func New(name string) *Proxy {
 	return &Proxy{
 		Name: name,
-		Quit: make(chan interface{}),
 	}
 }
 
 // Run initialize tcp or tls listener
 func (p *Proxy) Run(c config.ServerConfig) {
+	p.Lock()
+	if p.shutdown != nil {
+		p.shutdown()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	p.shutdown = cancel
+	p.Unlock()
+
 	l, err := reuseport.Listen("tcp", net.JoinHostPort(c.Listener.Host, c.Listener.Port))
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to listen")
@@ -84,16 +93,16 @@ func (p *Proxy) Run(c config.ServerConfig) {
 		p.Unlock()
 	}
 
-	p.handleConn(c)
+	p.handleConn(ctx, c)
 }
 
 // handleConn accept incoming connection and forward it
-func (p *Proxy) handleConn(c config.ServerConfig) {
+func (p *Proxy) handleConn(ctx context.Context, c config.ServerConfig) {
 	for {
 		srcConn, err := p.Listener.Accept()
 		if err != nil {
 			select {
-			case <-p.Quit:
+			case <-ctx.Done():
 				return
 			default:
 				log.Error().
@@ -123,7 +132,7 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 
 		p.Wg.Add(1)
 		go func() {
-			p.forwardConn(c, srcConn)
+			p.forwardConn(ctx, c, srcConn)
 			p.Wg.Done()
 			downstreamConnActive.With(prometheus.Labels{"name": p.Name}).Dec()
 		}()
@@ -131,7 +140,7 @@ func (p *Proxy) handleConn(c config.ServerConfig) {
 }
 
 // forwardConn forward source connection to rarget or destination
-func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
+func (p *Proxy) forwardConn(ctx context.Context, c config.ServerConfig, srcConn net.Conn) {
 	targetConn, targetWr, tConf, err := getTargets(c)
 	if err != nil {
 		log.Error().
@@ -140,6 +149,14 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 			Msg("failed to get targets")
 		srcConn.Close()
 		return
+	}
+
+	// Close long-lived connections to targets that have no timeout configured forcefully on shutdown.
+	if tConf.TimeoutDuration == 0 {
+		go func() {
+			<-ctx.Done()
+			closeConn(targetConn)
+		}()
 	}
 
 	defer srcConn.Close()
@@ -166,7 +183,10 @@ func (p *Proxy) forwardConn(c config.ServerConfig, srcConn net.Conn) {
 
 func (p *Proxy) Shutdown() {
 	p.Lock()
-	close(p.Quit)
+	if p.shutdown != nil {
+		p.shutdown()
+		p.shutdown = nil
+	}
 	if p.Listener != nil {
 		p.Listener.Close()
 	}
