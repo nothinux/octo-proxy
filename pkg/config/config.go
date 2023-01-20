@@ -36,11 +36,19 @@ type ServerConfig struct {
 }
 
 type HostConfig struct {
-	Host            string `yaml:"host"`
-	Port            string `yaml:"port"`
-	Timeout         string `yaml:"timeout"`
-	TimeoutDuration time.Duration
-	TLSConfig       `yaml:"tlsConfig"`
+	Host             string `yaml:"host"`
+	Port             string `yaml:"port"`
+	ConnectionConfig `yaml:"connection"`
+	TLSConfig        `yaml:"tls"`
+}
+
+type ConnectionConfig struct {
+	ConnectTimeout         int    `yaml:"connectTimeout"` // TODO: Implement connect timeout
+	Timeout                string `yaml:"timeout"`
+	IdleTimeout            int    `yaml:"idleTimeout"` // TODO: Implement idle timeout
+	ConnectTimeoutDuration time.Duration
+	TimeoutDuration        time.Duration
+	IdleTimeoutDuration    time.Duration
 }
 
 type TLSConfig struct {
@@ -227,18 +235,48 @@ func validateConfig(c *Config) (*Config, error) {
 	return c, nil
 }
 
-func setTimeout(c *HostConfig) error {
-	seconds := 300
+type timeoutFormat struct {
+	unit     string
+	duration time.Duration
+}
 
-	if c.Timeout != "" {
-		var err error
-		seconds, err = strconv.Atoi(c.Timeout)
-		if err != nil {
-			return err
+func setTimeout(c *HostConfig) error {
+	var format []timeoutFormat
+	format = append(format, timeoutFormat{"ms", time.Millisecond})
+	format = append(format, timeoutFormat{"s", time.Second})
+
+	timeout := c.ConnectionConfig.Timeout
+
+	if timeout == "" {
+		c.ConnectionConfig.TimeoutDuration = time.Duration(300) * time.Second
+		return nil
+	}
+
+	if timeout == "0" {
+		return nil
+	}
+
+	for _, v := range format {
+		if strings.HasSuffix(timeout, v.unit) {
+			return setTimeoutDuration(c, strings.TrimSuffix(timeout, v.unit), v.duration)
 		}
 	}
 
-	c.TimeoutDuration = time.Duration(seconds) * time.Second
+	// use seconds if user not provide unit
+	return setTimeoutDuration(c, timeout, time.Second)
+}
+
+func setTimeoutDuration(c *HostConfig, timeout string, td time.Duration) error {
+	t, err := strconv.Atoi(timeout)
+	if err != nil {
+		return err
+	}
+
+	if t < 0 {
+		return fmt.Errorf("can't use negative value for timeout")
+	}
+
+	c.ConnectionConfig.TimeoutDuration = time.Duration(t) * td
 
 	return nil
 }

@@ -127,15 +127,19 @@ func TestGenerateConfig(t *testing.T) {
 					{
 						Name: "default",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							TimeoutDuration: 300 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								TimeoutDuration: 300 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -305,15 +309,19 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							TimeoutDuration: 300 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								TimeoutDuration: 300 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -602,9 +610,11 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: "10",
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout: "10s",
+							},
 						},
 						Targets: []HostConfig{
 							{
@@ -620,16 +630,20 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							Timeout:         "10",
-							TimeoutDuration: 10 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout:         "10s",
+								TimeoutDuration: 10 * time.Second,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								TimeoutDuration: 300 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -637,21 +651,22 @@ func TestValidateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name: "set zero timeout",
+			Name: "set timeout on listener using ms",
 			Config: &Config{
 				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: "0",
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout: "10ms",
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: "0",
+								Host: "127.0.0.1",
+								Port: "80",
 							},
 						},
 					},
@@ -662,17 +677,20 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							Timeout:         "0",
-							TimeoutDuration: 0,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout:         "10ms",
+								TimeoutDuration: 10 * time.Millisecond,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								Timeout:         "0",
-								TimeoutDuration: 0,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -680,21 +698,25 @@ func TestValidateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name: "set zero timeout",
+			Name: "set zero timeout on listener & target",
 			Config: &Config{
 				ServerConfigs: []ServerConfig{
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: "0",
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout: "0",
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: "0",
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									Timeout: "0",
+								},
 							},
 						},
 					},
@@ -705,17 +727,21 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							Timeout:         "0",
-							TimeoutDuration: 0,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout:         "0",
+								TimeoutDuration: 0,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								Timeout:         "0",
-								TimeoutDuration: 0,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									Timeout:         "0",
+									TimeoutDuration: 0,
+								},
 							},
 						},
 					},
@@ -729,9 +755,11 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: "foo",
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								Timeout: "foo",
+							},
 						},
 						Targets: []HostConfig{
 							{
@@ -746,7 +774,7 @@ func TestValidateConfig(t *testing.T) {
 			expectedError:  "failed to parse timeout servers.[0]: strconv.Atoi: parsing \"foo\": invalid syntax",
 		},
 		{
-			Name: "set invalid timeout on listener",
+			Name: "set invalid timeout on target",
 			Config: &Config{
 				ServerConfigs: []ServerConfig{
 					{
@@ -757,9 +785,11 @@ func TestValidateConfig(t *testing.T) {
 						},
 						Targets: []HostConfig{
 							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: "foo",
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									Timeout: "foo",
+								},
 							},
 						},
 					},
@@ -785,15 +815,17 @@ func TestValidateConfig(t *testing.T) {
 							},
 						},
 						Mirror: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "81",
-							Timeout: "foo",
+							Host: "127.0.0.1",
+							Port: "81",
+							ConnectionConfig: ConnectionConfig{
+								Timeout: "-1",
+							},
 						},
 					},
 				},
 			},
 			expectedConfig: nil,
-			expectedError:  "failed to parse timeout servers.[0].mirror: strconv.Atoi: parsing \"foo\": invalid syntax",
+			expectedError:  "failed to parse timeout servers.[0].mirror: can't use negative value for timeout",
 		},
 		{
 			Name: "set timeout on listener, target and set mirror to default",
@@ -802,15 +834,13 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:    "127.0.0.1",
-							Port:    "8080",
-							Timeout: "10",
+							Host: "127.0.0.1",
+							Port: "8080",
 						},
 						Targets: []HostConfig{
 							{
-								Host:    "127.0.0.1",
-								Port:    "80",
-								Timeout: "200",
+								Host: "127.0.0.1",
+								Port: "80",
 							},
 						},
 						Mirror: HostConfig{
@@ -825,23 +855,27 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							Timeout:         "10",
-							TimeoutDuration: 10 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								Timeout:         "200",
-								TimeoutDuration: 200 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 						Mirror: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "9999",
-							TimeoutDuration: 300 * time.Second,
+							Host: "127.0.0.1",
+							Port: "9999",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 						},
 					},
 				},
@@ -877,9 +911,11 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							TimeoutDuration: 300 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 							TLSConfig: TLSConfig{
 								Role: Role{
 									Server: true,
@@ -892,9 +928,11 @@ func TestValidateConfig(t *testing.T) {
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								TimeoutDuration: 300 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -1142,15 +1180,19 @@ func TestValidateConfig(t *testing.T) {
 					{
 						Name: "proxy-1",
 						Listener: HostConfig{
-							Host:            "127.0.0.1",
-							Port:            "8080",
-							TimeoutDuration: 300 * time.Second,
+							Host: "127.0.0.1",
+							Port: "8080",
+							ConnectionConfig: ConnectionConfig{
+								TimeoutDuration: 300 * time.Second,
+							},
 						},
 						Targets: []HostConfig{
 							{
-								Host:            "127.0.0.1",
-								Port:            "80",
-								TimeoutDuration: 300 * time.Second,
+								Host: "127.0.0.1",
+								Port: "80",
+								ConnectionConfig: ConnectionConfig{
+									TimeoutDuration: 300 * time.Second,
+								},
 							},
 						},
 					},
@@ -1173,7 +1215,7 @@ func TestValidateConfig(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(config, tt.expectedConfig) {
-				t.Fatalf("got %v, want %v", config, tt.expectedConfig)
+				t.Fatalf("\ngot %v, \nwant %v", config, tt.expectedConfig)
 			}
 		})
 	}
