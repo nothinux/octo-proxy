@@ -77,7 +77,7 @@ servers:
   listener:
     host: 0.0.0.0
     port: 8080
-    tlsConfig:
+    tls:
       mode: simple
       cert: /tmp/cert.pem
       key: /tmp/cert-key.pem
