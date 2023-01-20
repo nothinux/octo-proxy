@@ -116,11 +116,8 @@ func (p *Proxy) handleConn(ctx context.Context, c config.ServerConfig) {
 		downstreamConnActive.With(prometheus.Labels{"name": p.Name}).Inc()
 		downstreamConnTotal.With(prometheus.Labels{"name": p.Name}).Inc()
 
-		t := c.Listener.TimeoutDuration
-		if t > 0 {
-			if err := srcConn.SetDeadline(time.Now().Add(t)); err != nil {
-				log.Error().Err(err).Msg("Failed to set src conn deadline")
-			}
+		if !timeoutIsZero(c.Listener) {
+			srcConn.SetDeadline(time.Now().Add(c.Listener.TimeoutDuration))
 		}
 
 		if err := isTLSConn(srcConn); err != nil {
@@ -152,10 +149,13 @@ func (p *Proxy) forwardConn(ctx context.Context, c config.ServerConfig, srcConn 
 	}
 
 	// Close long-lived connections to targets that have no timeout configured forcefully on shutdown.
-	if tConf.TimeoutDuration == 0 {
+	if timeoutIsZero(tConf) {
+		p.Wg.Add(1)
 		go func() {
 			<-ctx.Done()
 			closeConn(targetConn)
+
+			p.Wg.Done()
 		}()
 	}
 

@@ -109,9 +109,11 @@ func TestProxyWithMirror(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.ServerConfigs[0].Mirror = config.HostConfig{
-		Host:            strings.Split(mirror, ":")[0],
-		Port:            strings.Split(mirror, ":")[1],
-		TimeoutDuration: 10 * time.Second,
+		Host: strings.Split(mirror, ":")[0],
+		Port: strings.Split(mirror, ":")[1],
+		ConnectionConfig: config.ConnectionConfig{
+			TimeoutDuration: 10 * time.Second,
+		},
 	}
 
 	p := New("test-proxy")

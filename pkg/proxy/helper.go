@@ -21,3 +21,7 @@ func errCopy(err error, tConf config.HostConfig) error {
 
 	return nil
 }
+
+func timeoutIsZero(c config.HostConfig) bool {
+	return c.ConnectionConfig.TimeoutDuration == 0
+}
