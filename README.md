@@ -51,7 +51,7 @@ servers:
   listener:
     host: 0.0.0.0
     port: 8080
-    tlsConfig:
+    tls:
       mode: mutual
       caCert: /tmp/ca-cert.pem
       cert: /tmp/cert.pem

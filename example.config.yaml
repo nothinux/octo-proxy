@@ -3,20 +3,22 @@ servers:
   listener:
     host: 127.0.0.1
     port: 8080
-    tlsConfig:
+    tls:
       mode: mutual
       cert: certs/localhost.pem
       key: certs/localhost-key.pem
       caCert: certs/ca-cert.pem
-    # set timeout default is 300
-    timeout: 60
+    # set timeout default is 300 seconds
+    connection:
+      timeout: 60s
   targets:
     - host: 172.17.0.2
       port: 80
-      timeout: 60
-      tlsConfig:
+      tls:
         mode: simple
         caCert: certs/ca-cert.pem
+      connection:
+        timeout: 59s
   mirror:
     host: 172.17.0.3
     port: 80
