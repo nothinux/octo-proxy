@@ -48,7 +48,7 @@ func Run(c *config.Config, cPath string) error {
 	sigTerm := make(chan os.Signal, 1)
 	sigReload := make(chan os.Signal, 1)
 
-	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 	signal.Notify(sigReload, syscall.SIGUSR1, syscall.SIGUSR2)
 
 	sdnotify.Ready()
