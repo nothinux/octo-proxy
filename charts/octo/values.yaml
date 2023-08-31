@@ -1,0 +1,19 @@
+image:
+  repository: octo
+  tag: 0.0.1
+  pullPolicy: IfNotPresent
+
+ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+
+config: |
+  servers:
+  - name: web-proxy
+    listener:
+      host: 127.0.0.1
+      port: 8080
+    targets:
+      - host: 127.0.0.1
+        port: 80

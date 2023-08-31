@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: octo
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - name: octo-config
+          mountPath: /etc/octo
+          readOnly: true
+        command: ["/usr/local/bin/octo", "-config", "/etc/octo/config.yaml"]
+      volumes:
+        - name: octo-config
+          configMap:
+            name: {{ .Release.Name }}
