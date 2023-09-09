@@ -33,6 +33,9 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	var err error
 
 	ptls := newTLS()
+	if c.SNI != "" {
+		ptls.ServerName = c.SNI
+	}
 
 	if c.CaCert != "" {
 		caPool, err = getCACertPool(c)

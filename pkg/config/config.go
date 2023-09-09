@@ -55,6 +55,7 @@ type TLSConfig struct {
 	CaCert          string   `yaml:"caCert"`
 	Cert            string   `yaml:"cert"`
 	Key             string   `yaml:"key"`
+	SNI             string   `yaml:"sni"`
 	Mode            string   `yaml:"mode"`
 	SubjectAltNames []string `yaml:"subjectAltNames"`
 	SubjectAltName
@@ -314,7 +315,7 @@ func errorCheck(i int, hct hostConfigType, c *HostConfig) error {
 		return errors.New("server", fmt.Sprintf("port in servers.[%d].%s.port is not valid port number", i, hct.String()))
 	}
 
-	// inform user when cacert, cert and key provided but
+	// inform user when cacert, cert and key provided but tlsConfig mode is not set
 	if c.TLSConfig.CaCert != "" || c.TLSConfig.Cert != "" || c.TLSConfig.Key != "" {
 		if c.TLSConfig.Mode == "" {
 			return errors.New("server.tlsConfig", fmt.Sprintf("ignore cacert, cert or key in servers.[%d].%s because tlsConfig.mode is not set", i, hct.String()))

@@ -59,6 +59,7 @@ func dialTargets(hcs []config.HostConfig) (net.Conn, config.HostConfig, error) {
 			}
 			return c, *tConf, nil
 		}
+		log.Debug().Msgf("[targets] [%s:%s] dial error %v", hc.Host, hc.Port, err)
 	}
 
 	return nil, *tConf, errors.New("targets", "no backends could be reached")
