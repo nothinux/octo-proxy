@@ -312,6 +312,112 @@ func TestProxyWithMutualTLSWithConfiguredSNI(t *testing.T) {
 	p.Shutdown()
 }
 
+func TestProxyWithMutualTLSWithConfiguredCRLWithRevokedClientCert(t *testing.T) {
+	var wg sync.WaitGroup
+	result := make(chan []byte)
+
+	// start target server
+	backend := testhelper.RunTestServer(&wg, result)
+
+	// prepare configuration for octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", []string{backend}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ServerConfigs[0].Listener.TLSConfig = config.TLSConfig{
+		Mode:   "mutual",
+		Cert:   "../testdata/cert.pem",
+		Key:    "../testdata/cert-key.pem",
+		CaCert: "../testdata/ca-cert.pem",
+		CRL:    "../testdata/ca-crl-20230910074518.pem",
+		Role:   config.Role{Server: true},
+	}
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	// send data to octo-proxy
+	hc := config.HostConfig{
+		Host: "127.0.0.1",
+		Port: "9000",
+		TLSConfig: config.TLSConfig{
+			Mode:   "mutual",
+			CaCert: "../testdata/ca-cert.pem",
+			Cert:   "../testdata/client.pem",
+			Key:    "../testdata/client-key.pem",
+		},
+	}
+
+	// check data received by test server
+	t.Run("test get response from octo-proxy", func(t *testing.T) {
+		if err := SendData(hc, messageByte, true); err != nil {
+			if !strings.Contains(err.Error(), "remote error: tls: bad certificate") {
+				t.Fatalf("got %v, want response contain remote error: tls: bad certificate", err)
+			}
+		}
+	})
+
+	// shutdown octo-proxy
+	p.Shutdown()
+}
+
+func TestProxyWithMutualTLSWithConfiguredCRLWithRevokedServerCert(t *testing.T) {
+	var wg sync.WaitGroup
+	result := make(chan []byte)
+
+	// start target server
+	backend := testhelper.RunTestServer(&wg, result)
+
+	// prepare configuration for octo proxy
+	cfg, err := config.GenerateConfig("127.0.0.1:9000", []string{backend}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ServerConfigs[0].Listener.TLSConfig = config.TLSConfig{
+		Mode:   "mutual",
+		Cert:   "../testdata/cert.pem",
+		Key:    "../testdata/cert-key.pem",
+		CaCert: "../testdata/ca-cert.pem",
+		Role:   config.Role{Server: true},
+	}
+
+	p := New("test-proxy")
+	go func() {
+		p.Run(cfg.ServerConfigs[0])
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	// send data to octo-proxy
+	hc := config.HostConfig{
+		Host: "127.0.0.1",
+		Port: "9000",
+		TLSConfig: config.TLSConfig{
+			Mode:   "mutual",
+			CaCert: "../testdata/ca-cert.pem",
+			Cert:   "../testdata/client.pem",
+			Key:    "../testdata/client-key.pem",
+			CRL:    "../testdata/ca-crl-20230910080013.pem",
+		},
+	}
+
+	// check data received by test server
+	t.Run("test get response from octo-proxy", func(t *testing.T) {
+		if err := SendData(hc, messageByte, true); err != nil {
+			if !strings.Contains(err.Error(), "certificate was revoked and no longer valid - CN:certify") {
+				t.Fatalf("got %v, want response contain got certificate was revoked and no longer valid - CN:certifye", err)
+			}
+		}
+	})
+
+	// shutdown octo-proxy
+	p.Shutdown()
+}
+
 func TestProxyMutualTLSWhenClientUsingInvalidCertificate(t *testing.T) {
 	var wg sync.WaitGroup
 	result := make(chan []byte)

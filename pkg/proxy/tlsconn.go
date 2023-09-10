@@ -6,16 +6,22 @@ import (
 	"crypto/x509"
 	goerrors "errors"
 	"net"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/nothinux/octo-proxy/pkg/config"
-	"github.com/nothinux/octo-proxy/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
 type ProxyTLS struct {
 	*tls.Config
+	RevocationList *x509.RevocationList
+}
+
+type VerifyOpts struct {
+	CaCert *x509.Certificate
+	Cert   *x509.Certificate
+	CRL    *x509.RevocationList
 }
 
 func newTLS() *ProxyTLS {
@@ -29,6 +35,8 @@ func newTLS() *ProxyTLS {
 // getTLSConfig returns a TLS Config for the simple and mutual tls
 func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 	var caPool *x509.CertPool
+	var caCert *x509.Certificate
+	var crlVerification bool
 	var pair tls.Certificate
 	var err error
 
@@ -44,6 +52,11 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 		}
 
 		ptls.RootCAs = caPool
+
+		caCert, err = getCACertificate(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if c.Cert != "" && c.Key != "" {
@@ -53,6 +66,16 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 		}
 
 		ptls.Certificates = []tls.Certificate{pair}
+	}
+
+	if c.CRL != "" {
+		crl, err := getCACRL(c)
+		if err != nil {
+			return nil, err
+		}
+
+		ptls.RevocationList = crl
+		crlVerification = true
 	}
 
 	if c.IsMutual() {
@@ -69,8 +92,22 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 						}
 
 						_, err := verifiedChains[0][0].Verify(opts)
+						if err != nil {
+							return err
+						}
 
-						return err
+						if crlVerification {
+							revocationOpts := VerifyOpts{
+								CaCert: caCert,
+								Cert:   verifiedChains[0][0],
+								CRL:    ptls.RevocationList,
+							}
+
+							_, err = isCertificateRevoked(revocationOpts)
+							return err
+						}
+
+						return nil
 					},
 				}, nil
 			}
@@ -91,13 +128,46 @@ func getTLSConfig(c config.TLSConfig) (*ProxyTLS, error) {
 				}
 
 				_, err := cs.PeerCertificates[0].Verify(opts)
+				if err != nil {
+					return err
+				}
 
-				return err
+				if crlVerification {
+					revocationOpts := VerifyOpts{
+						CaCert: caCert,
+						Cert:   cs.PeerCertificates[0],
+						CRL:    ptls.RevocationList,
+					}
+
+					_, err := isCertificateRevoked(revocationOpts)
+					return err
+				}
+
+				return nil
 			}
 		}
 	}
 
 	return ptls, nil
+}
+
+func isCertificateRevoked(opts VerifyOpts) (bool, error) {
+	err := opts.CRL.CheckSignatureFrom(opts.CaCert)
+	if err != nil {
+		return false, err
+	}
+
+	if opts.CRL.NextUpdate.Before(time.Now()) {
+		return false, goerrors.New("crl file is outdated")
+	}
+
+	for _, sn := range opts.CRL.RevokedCertificateEntries {
+		if sn.SerialNumber.Cmp(opts.Cert.SerialNumber) == 0 {
+			return false, goerrors.New("certificate was revoked and no longer valid - CN:" + opts.Cert.Subject.CommonName)
+		}
+	}
+
+	return true, nil
 }
 
 func isTLSConn(nc net.Conn) error {
@@ -112,37 +182,4 @@ func isTLSConn(nc net.Conn) error {
 	}
 
 	return nil
-}
-
-func getCACertPool(c config.TLSConfig) (*x509.CertPool, error) {
-	cacert, err := os.ReadFile(c.CaCert)
-	if err != nil {
-		return nil, err
-	}
-
-	pool := x509.NewCertPool()
-	if ok := pool.AppendCertsFromPEM(cacert); !ok {
-		return nil, errors.New("tlsConfig", "can't add CA to pool")
-	}
-
-	return pool, nil
-}
-
-func getCertKeyPair(c config.TLSConfig) (tls.Certificate, error) {
-	pcert, err := os.ReadFile(c.Cert)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-
-	pkey, err := os.ReadFile(c.Key)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-
-	cert, err := tls.X509KeyPair(pcert, pkey)
-	if err != nil {
-		return tls.Certificate{}, errors.New("tlsConfig", "can't parse public & private key pair "+err.Error())
-	}
-
-	return cert, nil
 }

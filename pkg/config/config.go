@@ -56,6 +56,7 @@ type TLSConfig struct {
 	Cert            string   `yaml:"cert"`
 	Key             string   `yaml:"key"`
 	SNI             string   `yaml:"sni"`
+	CRL             string   `yaml:"crl"`
 	Mode            string   `yaml:"mode"`
 	SubjectAltNames []string `yaml:"subjectAltNames"`
 	SubjectAltName
