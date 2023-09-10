@@ -17,88 +17,86 @@ func TestNewTLS(t *testing.T) {
 	}
 }
 
-func TestGetCACertPool(t *testing.T) {
+func TestIsCertificateRevoked(t *testing.T) {
+	caCert, err := getCACertificate(config.TLSConfig{CaCert: "../testdata/ca-cert.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	invalidCaCert, err := getCACertificate(config.TLSConfig{CaCert: "../testdata/wrong-ca.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	emptyCaCRL, err := getCACRL(config.TLSConfig{CRL: "../testdata/ca-crl.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	caCRL, err := getCACRL(config.TLSConfig{CRL: "../testdata/ca-crl-20230910095828.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err := getCACertificate(config.TLSConfig{CaCert: "../testdata/client.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	invalidCaCRL, err := getCACRL(config.TLSConfig{CRL: "../testdata/ca-crl-20230910100117.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
 		Name      string
-		Config    config.TLSConfig
+		Opts      VerifyOpts
 		wantError error
 	}{
 		{
-			Name:      "Check ca-cert file",
-			Config:    config.TLSConfig{CaCert: "../testdata/ca-cert.pem"},
+			Name: "Test valid certificate",
+			Opts: VerifyOpts{
+				CaCert: caCert,
+				Cert:   cert,
+				CRL:    emptyCaCRL,
+			},
 			wantError: nil,
 		},
 		{
-			Name:      "Check if ca-cert file not found",
-			Config:    config.TLSConfig{CaCert: "/tmp/zzz"},
-			wantError: errors.New("no such file or directory"),
+			Name: "Test revoked certificate",
+			Opts: VerifyOpts{
+				CaCert: caCert,
+				Cert:   cert,
+				CRL:    caCRL,
+			},
+			wantError: errors.New("certificate was revoked and no longer valid - CN:certify"),
 		},
 		{
-			Name:      "Check not ca-cert file",
-			Config:    config.TLSConfig{CaCert: "../testdata/file"},
-			wantError: errors.New("can't add CA to pool"),
+			Name: "Test invalid crl",
+			Opts: VerifyOpts{
+				CaCert: caCert,
+				Cert:   cert,
+				CRL:    invalidCaCRL,
+			},
+			wantError: errors.New("crl file is outdated"),
+		},
+		{
+			Name: "Test invalid cacert",
+			Opts: VerifyOpts{
+				CaCert: invalidCaCert,
+				Cert:   cert,
+				CRL:    caCRL,
+			},
+			wantError: errors.New("x509: ECDSA verification failure"),
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			_, err := getCACertPool(tt.Config)
-			if err != tt.wantError {
-				if !strings.Contains(err.Error(), tt.wantError.Error()) {
-					t.Fatalf("got %v, want %v", err, tt.wantError)
-				}
+		_, err := isCertificateRevoked(tt.Opts)
+		if err != tt.wantError {
+			if !strings.Contains(err.Error(), tt.wantError.Error()) {
+				t.Fatalf("got %v, want %v", err.Error(), tt.wantError)
 			}
-		})
-	}
-}
-
-func TestGetCertKeyPair(t *testing.T) {
-	tests := []struct {
-		Name      string
-		Config    config.TLSConfig
-		wantError error
-	}{
-		{
-			Name: "Check if cert file not found",
-			Config: config.TLSConfig{
-				Cert: "../testdata/zzzz",
-			},
-			wantError: errors.New("no such file or directory"),
-		},
-		{
-			Name: "Check if key file not found",
-			Config: config.TLSConfig{
-				Cert: "../testdata/cert.pem",
-				Key:  "../testdata/zzzz",
-			},
-			wantError: errors.New("no such file or directory"),
-		},
-		{
-			Name: "Check if cert and key is not match",
-			Config: config.TLSConfig{
-				Cert: "../testdata/cert.pem",
-				Key:  "../testdata/ca-key.pem",
-			},
-			wantError: errors.New("can't parse public & private key pair tls: private key does not match public key"),
-		},
-		{
-			Name: "Check if cert and key is match",
-			Config: config.TLSConfig{
-				Cert: "../testdata/cert.pem",
-				Key:  "../testdata/cert-key.pem",
-			},
-			wantError: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			_, err := getCertKeyPair(tt.Config)
-			if err != tt.wantError {
-				if !strings.Contains(err.Error(), tt.wantError.Error()) {
-					t.Fatalf("got %v, want %v", err, tt.wantError)
-				}
-			}
-		})
+		}
 	}
 }
