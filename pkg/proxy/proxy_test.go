@@ -329,7 +329,7 @@ func TestProxyWithMutualTLSWithConfiguredCRLWithRevokedClientCert(t *testing.T) 
 		Cert:   "../testdata/cert.pem",
 		Key:    "../testdata/cert-key.pem",
 		CaCert: "../testdata/ca-cert.pem",
-		CRL:    "../testdata/ca-crl-20230910074518.pem",
+		CRL:    "../testdata/ca-crl-20230910095828.pem",
 		Role:   config.Role{Server: true},
 	}
 
@@ -401,7 +401,7 @@ func TestProxyWithMutualTLSWithConfiguredCRLWithRevokedServerCert(t *testing.T) 
 			CaCert: "../testdata/ca-cert.pem",
 			Cert:   "../testdata/client.pem",
 			Key:    "../testdata/client-key.pem",
-			CRL:    "../testdata/ca-crl-20230910080013.pem",
+			CRL:    "../testdata/ca-crl-20230910100009.pem",
 		},
 	}
 

@@ -36,6 +36,7 @@
 | cert     | `<string>`    | The path to the Certificate file, this option need to be set if the mode is `mutual` to authenticate/verify the server/client.                   | yes      |
 | key      | `<string>`    | The path to the Private key file, this option need to be set if the mode is `mutual`.                  | yes      |
 | sni      | `<string>`    | Set SNI during TLS handshake                  | no      |
+| crl      | `<string>`    | The path to CRL file, If the CRL is configured, the server/client will verify the peer's certificate against the CRL     | no      |
 
 ## tlsMode
 | Field     | Type          | Description                     |
@@ -46,6 +47,6 @@
 > Currently, in mutual mode octo-proxy will only verify the ip address of it's client and try to match it with ip sans in certificate. In the future we will adding more alternative names verification.
 
 ## Metrics
-| Field    | Type          | Description                     |                                                 | Required |
-| -------- | ------------- | ------------------------------- | ----------------------------------------------- | -------- |
+| Field    | Type          | Description                     | Required |
+| -------- | ------------- | ------------------------------- | -------- |
 | metrics  | [HostConfig]  | Configures the host and port for the metrics server, currently doesn't support tls settings | no       |
